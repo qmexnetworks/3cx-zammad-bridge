@@ -1,0 +1,12 @@
+3CX:
+  user: admin
+  pass: secret
+  host: https://3cx.example.com
+  group: GROUPNAME
+  extension_digits: 3
+  trunk_digits: 5
+  queue_extension: 816
+
+Zammad:
+  endpoint: https://zammad.example.com/api/v1/cti/secret
+  log_missed_queue_calls: true
