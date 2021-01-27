@@ -19,7 +19,8 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-config = BridgeConfig("/opt/3cx-zammad-bridge/config.yaml",
+config = BridgeConfig("/etc/3cx-zammad-bridge/config.yaml",
+                      "/opt/3cx-zammad-bridge/config.yaml",
                       "config.yaml"
                       )
 session3cx = Api3CX(config)
