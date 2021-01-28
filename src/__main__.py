@@ -26,7 +26,7 @@ config = BridgeConfig("/etc/3cx-zammad-bridge/config.yaml",
 session3cx = Api3CX(config)
 zammad = Zammad(config.zammad_endpoint)
 
-calls = dict[int, CallZammad]()
+calls = dict()
 while session3cx.is_authenticated:
     new_calls = []
     data = session3cx.fetch_active_calls()

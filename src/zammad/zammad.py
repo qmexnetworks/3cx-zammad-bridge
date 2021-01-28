@@ -6,8 +6,6 @@ from zammad.call import CallZammad
 
 
 class Zammad:
-    endpoint: str
-
     def __init__(self, endpoint: str):
         self.endpoint = endpoint
 

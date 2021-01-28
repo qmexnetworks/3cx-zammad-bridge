@@ -2,18 +2,6 @@ import yaml
 
 
 class BridgeConfig:
-    api3CX_host: str
-    api3CX_user: str
-    api3CX_pass: str
-    api3CX_group: str
-    api3CX_extension_digits: int
-    api3CX_trunk_digits: int
-    api3CX_queue_extension: int
-
-    zammad_endpoint: str
-    zammad_log_missed_queue_calls: bool
-    _raw: dict
-
     def __init__(self, *paths):
         for path in paths:
             try:

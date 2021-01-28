@@ -4,13 +4,12 @@ from config.config import BridgeConfig
 
 
 class Api3CX:
-    is_authenticated: bool = False
-    config: BridgeConfig
-    extensions: list[int]
+    is_authenticated = False
 
     def __init__(self, config: BridgeConfig):
         self.session = requests.Session()
         self.config = config
+        self.extensions = []
 
         self.authenticate()
 

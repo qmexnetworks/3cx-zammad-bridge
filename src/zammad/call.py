@@ -2,11 +2,11 @@ from uuid import UUID
 
 
 class CallZammad:
-    callid: UUID
-    direction: str  # Either "Inbound" or "Outbound"
-    number: str
-    status: str
-
-    cause: str or None = None
-    agent: str or None = None
-    agent_name: str or None = None
+    def __init__(self):
+        self.callid = None
+        self.direction = None# Either "Inbound" or "Outbound"
+        self.number = None
+        self.status = None
+        self.cause = None
+        self.agent = None
+        self.agent_name = None
