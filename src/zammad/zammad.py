@@ -59,8 +59,7 @@ class Zammad:
         if resp.status_code == 200:
             logging.info("Event sent to Zammad")
         else:
-            logging.info("Error sending Event to Zammad")
-        pass
+            logging.error("Error sending Event to Zammad: " + resp.text)
 
     def parse_call(self, call: CallZammad) -> [str, str, str]:
         if call.direction == "Inbound":

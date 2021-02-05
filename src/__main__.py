@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import logging
 import signal
 import sys
 import uuid
@@ -18,6 +19,7 @@ def signal_handler(signal, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
+logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
 config = BridgeConfig("/etc/3cx-zammad-bridge/config.yaml",
                       "/opt/3cx-zammad-bridge/config.yaml",
