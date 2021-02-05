@@ -6,8 +6,10 @@ Monitors calls in 3CX and communicates this to Zammad accordingly.
 
 ```shell
 # Recommended: use virtualenv
-python -m venv venv
+virtualenv venv
 source venv/bin/activate
+pip install pipenv
+pipenv install
 # Run the service
 python src
 ```

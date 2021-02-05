@@ -1,13 +1,17 @@
 import logging
+import ssl
 
 import requests
 
+from bridge_helpers.ssl import SSLAdapter
 from zammad.call import CallZammad
 
 
 class Zammad:
     def __init__(self, endpoint: str):
         self.endpoint = endpoint
+        self.session = requests.Session()
+        self.session.mount('https://', SSLAdapter(ssl.PROTOCOL_TLSv1_2))
 
     def new_call(self, call: CallZammad):
         call_from, _, direction = self.parse_call(call)
@@ -55,11 +59,14 @@ class Zammad:
         return self.make_request(payload)
 
     def make_request(self, payload: dict):
-        resp = requests.post(self.endpoint, payload)
-        if resp.status_code == 200:
-            logging.info("Event sent to Zammad")
-        else:
-            logging.error("Error sending Event to Zammad: " + resp.text)
+        try:
+            resp = self.session.post(self.endpoint, payload)
+            if resp.status_code == 200:
+                logging.info("Event sent to Zammad")
+            else:
+                logging.error("Error sending Event to Zammad: " + resp.text)
+        except requests.RequestException as err:
+            logging.error("Error sending Event to Zammad: " + err.response)
 
     def parse_call(self, call: CallZammad) -> [str, str, str]:
         if call.direction == "Inbound":

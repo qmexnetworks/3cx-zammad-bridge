@@ -1,5 +1,8 @@
+import ssl
+
 import requests
 
+from bridge_helpers.ssl import SSLAdapter
 from config.config import BridgeConfig
 
 
@@ -8,6 +11,7 @@ class Api3CX:
 
     def __init__(self, config: BridgeConfig):
         self.session = requests.Session()
+        self.session.mount('https://', SSLAdapter(ssl.PROTOCOL_TLSv1_2))
         self.config = config
         self.extensions = []
 
