@@ -2,6 +2,10 @@
 
 Monitors calls in 3CX and communicates this to Zammad accordingly.
 
+## Requirements
+
+- Python 3.9+
+
 ## Installation
 
 ```shell
