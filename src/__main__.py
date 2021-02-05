@@ -14,7 +14,7 @@ from zammad.zammad import Zammad
 
 
 def signal_handler(signal, frame):
-    print('Received SIGINT, exiting')
+    logging.info('Received SIGINT, exiting')
     sys.exit(0)
 
 
@@ -81,11 +81,11 @@ while session3cx.is_authenticated:
 
                 # Mark only non transferring Calls (Queue Calls) ans newCall
                 if row.Status == "Routing":
-                    print("New Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
+                    logging.info("New Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
                         source) + " to " + str(dest))
                     zammad.new_call(calls[call_id])
                 elif row.Status == "Transferring":
-                    print("New Queue Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
+                    logging.info("New Queue Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
                         source) + " to " + str(dest))
         else:
             # Already known calls
@@ -94,7 +94,7 @@ while session3cx.is_authenticated:
                 calls[call_id].agent = agent_number
                 calls[call_id].agent_name = agent_name
                 calls[call_id].status = row.Status
-                print("Call with ID " + str(calls[call_id].callid) + " " + str(direction) + " from " + str(
+                logging.info("Call with ID " + str(calls[call_id].callid) + " " + str(direction) + " from " + str(
                     source) + " was answered by " + str(dest))
                 zammad.answer(calls[call_id])
             # if status was Transferring and is now Talking, Queue Call was answered
@@ -102,7 +102,7 @@ while session3cx.is_authenticated:
                 calls[call_id].agent = agent_number
                 calls[call_id].agent_name = agent_name
                 calls[call_id].status = row.Status
-                print("Queue Call with ID " + str(calls[call_id].callid) + " " + str(direction) + " from " + str(
+                logging.info("Queue Call with ID " + str(calls[call_id].callid) + " " + str(direction) + " from " + str(
                     source) + " was answered by " + str(dest))
                 zammad.new_call(calls[call_id])
                 zammad.answer(calls[call_id])
@@ -114,17 +114,17 @@ while session3cx.is_authenticated:
         if call_id not in new_calls:
             # If call was Routing its now unanswered
             if calls[call_id].status == "Routing":
-                print("Call with ID " + str(calls[call_id].callid) + " " + str(
+                logging.info("Call with ID " + str(calls[call_id].callid) + " " + str(
                     calls[call_id].direction) + " was not answered")
                 calls[call_id].cause = "cancel"
                 zammad.hangup(calls[call_id])
             elif calls[call_id].status == "Talking":
-                print("Call with ID " + str(calls[call_id].callid) + " " + str(
+                logging.info("Call with ID " + str(calls[call_id].callid) + " " + str(
                     calls[call_id].direction) + " was hangup")
                 calls[call_id].cause = "normalClearing"
                 zammad.hangup(calls[call_id])
             elif calls[call_id].status == "Transferring" and config.zammad_log_missed_queue_calls:
-                print("Queue Call with ID " + str(calls[call_id].callid) + " " + str(
+                logging.info("Queue Call with ID " + str(calls[call_id].callid) + " " + str(
                     calls[call_id].direction) + " was not answered")
                 calls[call_id].cause = "cancel"
                 calls[call_id].agent = config.api3CX_queue_extension

@@ -1,3 +1,5 @@
+import logging
+
 import yaml
 
 
@@ -36,7 +38,7 @@ class BridgeConfig:
 
                         return
                     except yaml.YAMLError as exc:
-                        print(exc)
+                        logging.error("Parsing error for config file: " + str(exc))
             except FileNotFoundError:
                 continue  # will try other file in loop
 

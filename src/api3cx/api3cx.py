@@ -1,3 +1,5 @@
+import logging
+
 import requests
 
 from config.config import BridgeConfig
@@ -66,9 +68,9 @@ class Api3CX:
             for row in data[0]['Item']['Members']['selected']:
                 nI += 1
                 extensions.append(int(row['Number']['_value']))
-        print("Imported " + str(nI) + " extensions: ")
+        logging.info("Imported " + str(nI) + " extensions: ")
         for extension in extensions:
-            print('- ' + str(extension))
+            logging.info('- ' + str(extension))
 
         ## Add Queue extension to Extensions
         extensions.append(self.config.api3CX_queue_extension)
@@ -92,7 +94,7 @@ class Api3CX:
         resp = self.session.get(self.config.api3CX_host + '/api/activeCalls')
         if resp.status_code != 200:
             # Try reauth
-            print("Reauthenticating...")
+            logging.info("Reauthenticating...")
             self.authenticate()
 
             return self.fetch_active_calls()
