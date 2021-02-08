@@ -12,12 +12,12 @@ class Zammad:
         self.endpoint = endpoint
 
     def new_call(self, call: CallZammad):
-        call_from, _, direction = self.parse_call(call)
+        call_from, call_to, direction = self.parse_call(call)
         payload = {
             "event": "newCall",
             "from": call_from,
-            "to": "",
-            "user[]": call.agent_name,
+            "to": call_to,
+            "user": call.agent_name,
             "direction": direction,
             "call_id": call.callid,
             "callid": call.callid,
@@ -52,7 +52,7 @@ class Zammad:
             "answeringNumber": call.agent
         }
         if call.direction == 'Inbound':
-            payload['user[]'] = call.agent_name
+            payload['user'] = call.agent_name
 
         return self.make_request(payload)
 
@@ -60,9 +60,9 @@ class Zammad:
         resp = requests.post(self.endpoint, json=payload)
         try:
             if resp.status_code == 200:
-                logging.info("Event sent to Zammad")
+                logging.info("Event sent to Zammad: " + str(payload))
             else:
-                logging.error("Error sending Event to Zammad: " + resp.text)
+                logging.error("Error sending Event to Zammad: " + resp.text + "\n" + str(payload))
         except requests.RequestException as err:
             logging.error("Error sending Event to Zammad:" + str(err))
 
