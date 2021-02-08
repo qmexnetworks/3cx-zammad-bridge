@@ -83,4 +83,7 @@ class Zammad:
         if not call.agent_name:
             call.agent_name = ''
 
+        if not call_to:
+            call_to = ""
+
         return [call_from, call_to, direction]
