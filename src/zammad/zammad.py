@@ -60,7 +60,7 @@ class Zammad:
         resp = requests.post(self.endpoint, json=payload)
         try:
             if resp.status_code == 200:
-                logging.info("Event sent to Zammad: " + str(payload))
+                logging.info("Event sent to Zammad")
             else:
                 logging.error("Error sending Event to Zammad: " + resp.text + "\n" + str(payload))
         except requests.RequestException as err:
