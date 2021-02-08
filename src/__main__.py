@@ -69,7 +69,7 @@ while session3cx.is_authenticated:
             # Not known calls
             if row.Status == "Routing" or row.Status == "Transferring":
                 # This is a new Call Ringing
-                call_uid = uuid.uuid4()
+                call_uid = str(uuid.uuid4())
                 calls[call_id] = CallZammad()
                 calls[call_id].callid = call_uid
                 calls[call_id].direction = direction
@@ -81,11 +81,11 @@ while session3cx.is_authenticated:
 
                 # Mark only non transferring Calls (Queue Calls) ans newCall
                 if row.Status == "Routing":
-                    logging.info("New Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
+                    logging.info("New Call with ID " + call_uid + " " + str(direction) + " from " + str(
                         source) + " to " + str(dest))
                     zammad.new_call(calls[call_id])
                 elif row.Status == "Transferring":
-                    logging.info("New Queue Call with ID " + str(call_uid) + " " + str(direction) + " from " + str(
+                    logging.info("New Queue Call with ID " + call_uid + " " + str(direction) + " from " + str(
                         source) + " to " + str(dest))
         else:
             # Already known calls

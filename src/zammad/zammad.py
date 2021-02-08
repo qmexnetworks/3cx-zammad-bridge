@@ -57,14 +57,14 @@ class Zammad:
         return self.make_request(payload)
 
     def make_request(self, payload: dict):
-        resp = requests.post(self.endpoint, payload)
+        resp = requests.post(self.endpoint, json=payload)
         try:
             if resp.status_code == 200:
                 logging.info("Event sent to Zammad")
             else:
-                logging.error("Error sending Event to Zammad")
+                logging.error("Error sending Event to Zammad: " + resp.text)
         except requests.RequestException as err:
-            logging.error("Error sending Event to Zammad:" + str(Err))
+            logging.error("Error sending Event to Zammad:" + str(err))
 
     def parse_call(self, call: CallZammad) -> [str, str, str]:
         if call.direction == "Inbound":
@@ -80,7 +80,7 @@ class Zammad:
             call_to = call.number
             direction = "out"
 
-        if call.agent_name:
+        if not call.agent_name:
             call.agent_name = ''
 
         return [call_from, call_to, direction]
