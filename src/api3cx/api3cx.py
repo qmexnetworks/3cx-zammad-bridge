@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+import time
 import logging
 
 import requests
@@ -6,6 +8,7 @@ from config.config import BridgeConfig
 
 
 class Api3CX:
+    down_since = None
     is_authenticated: bool = False
     config: BridgeConfig
     extensions: list[int]
@@ -85,10 +88,22 @@ class Api3CX:
 
         resp = self.session.post(self.config.api3CX_host + '/api/login', json=auth_data)
         if resp.status_code == 200 and str(resp.text) == 'AuthSuccess':
+            self.down_since = None
             self.is_authenticated = True
             self.extensions = self.fetch_group_members(self.config.api3CX_group)
         else:
-            raise RuntimeError('Unable to authenticate with 3CX: ' + resp.text)
+            # Start logging the point it went down
+            if self.down_since is None:
+                self.down_since = datetime.now()
+
+            # If it has been down for two minutes, exit
+            if datetime.now() - timedelta(minutes=2) > self.down_since:
+                raise RuntimeError('Unable to authenticate with 3CX for two minutes: ' + resp.text)
+
+            # Reauthenticate after 5 seconds
+            logging.warn("Unable to authenticate with 3CX (possibly offline?) - HTTP Status %s. Retrying in 5 sec..." % resp.status_code)
+            time.sleep(5)
+            return self.authenticate()
 
     def fetch_active_calls(self) -> dict:
         resp = self.session.get(self.config.api3CX_host + '/api/activeCalls')

@@ -20,8 +20,11 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stderr,
+                    level=logging.INFO,
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    )
 
 config = BridgeConfig("/etc/3cx-zammad-bridge/config.yaml",
                       "/opt/3cx-zammad-bridge/config.yaml",
