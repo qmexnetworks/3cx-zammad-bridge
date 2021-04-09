@@ -1,3 +1,6 @@
+Bridge:
+  poll_interval: 0.5
+
 3CX:
   user: admin
   pass: secret

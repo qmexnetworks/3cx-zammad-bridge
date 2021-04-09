@@ -9,6 +9,9 @@ import (
 )
 
 type Config struct {
+	Bridge struct {
+		PollInterval float64 `yaml:"poll_interval"`
+	} `yaml:"Bridge"`
 	Phone3CX struct {
 		User            string `yaml:"user"`
 		Pass            string `yaml:"pass"`
@@ -37,7 +40,7 @@ func LoadConfigFromYaml(filenames ...string) (*Config, error) {
 
 		err = yaml.Unmarshal(b, config)
 		if err != nil {
-			log.Printf("WARNING: Unable to parse YAML config %s: %q\n", f, err.Error())
+			log.Printf("WARNING: Unable to parse YAML config %s: %q", f, err.Error())
 			continue // hopefully other files will work out?
 		}
 

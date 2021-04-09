@@ -21,6 +21,9 @@ All configuration is done through the `config.yaml` file, that may appear in the
 The first (found) configuration file will be used. Also refer to the `config.yaml.dist` file
    
 ```yaml
+Bridge:
+  poll_interval: 0.5 # decimal; The number of seconds to wait in between polling 3CX for calls
+
 3CX:
     user: "the username of a 3CX admin account"
     pass: "the password of a 3CX admin account"
