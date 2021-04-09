@@ -4,20 +4,12 @@ Monitors calls in 3CX and communicates this to Zammad accordingly.
 
 ## Requirements
 
-- Python 3.9+
+ - Linux x86_64
 
 ## Installation
 
-```shell
-# Recommended: use virtualenv
-python -m venv venv
-source venv/bin/activate
-pip install pipenv
-pipenv install
-# Run the service
-python src
-```
- 
+T.B.D.
+
 ## Configuration
 
 All configuration is done through the `config.yaml` file, that may appear in these locations:
@@ -45,7 +37,7 @@ Zammad:
 
 ## Running
  
-Run the `src/__main__.py` script to run the daemon. 
+Run the release binary to run the daemon. 
 
 Example supervisord config:
 
