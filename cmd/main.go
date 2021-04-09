@@ -29,13 +29,6 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
-	/*
-
-	- `/etc/3cx-zammad-bridge/config.yaml`
-	- `/opt/3cx-zammad-bridge/config.yaml`
-	- `config.yaml`  (within the working directory of this 3cx bridge process)
-
-	*/
 	c, err := zammadbridge.LoadConfigFromYaml(
 		"config.yaml",
 		"/etc/3cx-zammad-bridge/config.yaml",
