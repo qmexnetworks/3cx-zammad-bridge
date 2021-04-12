@@ -115,14 +115,14 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		call.Direction = "Outbound"
 		call.AgentNumber = call.CallerNumber
 		call.AgentName = call.CallerName
-		call.ExternalNumber = z.ParsePhoneNumber(call.CalleeNumber)
+		call.ExternalNumber = z.ParsePhoneNumber(call.CalleeNumber + " " + call.CalleeName)
 		call.CallTo = call.ExternalNumber
 		call.CallFrom = call.AgentNumber
 	} else if z.isInboundCall(call) {
 		call.Direction = "Inbound"
 		call.AgentNumber = call.CalleeNumber
 		call.AgentName = call.CalleeName
-		call.ExternalNumber = z.ParsePhoneNumber(call.CalleeNumber)
+		call.ExternalNumber = z.ParsePhoneNumber(call.CallerNumber + " " + call.CallerName)
 		call.CallTo = call.AgentNumber
 		call.CallFrom = call.ExternalNumber
 	} else {
@@ -145,11 +145,12 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 	} else {
 		// Update call information
 		previous := z.ongoingCalls[call.Id]
+		call.CallUID = previous.CallUID
 		if call.Status == "Talking" && previous.Status == "Routing" {
-			StdOut.Printf("Call with ID %s %s from %s was answered by", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+			StdOut.Printf("Call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
 			z.LogIfErr(z.ZammadAnswer(call))
 		} else if call.Status == "Talking" && previous.Status == "Transferring" {
-			StdOut.Printf("Queue call with ID %s %s from %s was answered by", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+			StdOut.Printf("Queue call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
 			z.LogIfErr(z.ZammadNewCall(call))
 			z.LogIfErr(z.ZammadAnswer(call))
 		}

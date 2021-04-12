@@ -100,18 +100,17 @@ func (z *ZammadBridge) Fetch3CXGroupMembers() error {
 		return fmt.Errorf("unable to find 3CX group id: %w", err)
 	}
 
+	_, objectId, err := z.Fetch3CXGroupMembersPageFirst(groupId)
+	if err != nil {
+		return fmt.Errorf("unable to fetch group object id %s: %w", groupId, err)
+	}
+
 	var startIndex = 0
-	var objectId string
 	var allExtensions []string
 	z.phoneExtensions = map[string]struct{}{}
 
 	for len(z.phoneExtensions) < count && startIndex <= count {
-		var extensions []string
-		if startIndex == 0 {
-			extensions, objectId, err = z.Fetch3CXGroupMembersPageFirst(groupId)
-		} else {
-			extensions, err = z.Fetch3CXGroupMembersPage(objectId, startIndex)
-		}
+		extensions, err := z.Fetch3CXGroupMembersPage(objectId, startIndex)
 		if err != nil {
 			return fmt.Errorf("unable to fetch group members from index %d from group %s: %w", startIndex, groupId, err)
 		}
@@ -137,7 +136,7 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPageFirst(groupId string) ([]string, 
 
 	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host + "/api/GroupList/set", "application/json", bytes.NewBufferString(requestBody))
 	if err != nil {
-		return nil,  "", fmt.Errorf("unable to make request: %w", err)
+		return nil,  "", fmt.Errorf("unable to make GroupList/set request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -176,7 +175,7 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPage(objectId string, start int) ([]s
 
 	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host + "/api/edit/update", "application/json", bytes.NewBufferString(requestBody))
 	if err != nil {
-		return nil, fmt.Errorf("unable to make request: %w", err)
+		return nil, fmt.Errorf("unable to make group member listing request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -269,7 +268,7 @@ func (z *ZammadBridge) Authenticate3CX() error {
 
 	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host+"/api/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("unable to make request: %w", err)
+		return fmt.Errorf("unable to make login request: %w", err)
 	}
 	defer resp.Body.Close()
 
