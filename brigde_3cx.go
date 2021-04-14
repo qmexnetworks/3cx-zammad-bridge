@@ -13,8 +13,8 @@ import (
 
 type CallInformation struct {
 	Id     json.Number `json:"Id"`
-	Caller string `json:"Caller"`
-	Callee string `json:"Callee"`
+	Caller string      `json:"Caller"`
+	Callee string      `json:"Callee"`
 
 	// Status has possible values: "Talking", "Transferring", "Routing"
 	Status string `json:"Status"`
@@ -38,8 +38,8 @@ type GroupListResponseEntry struct {
 }
 
 type GroupListEntryObject struct {
-	Members struct{
-		Selected []struct{
+	Members struct {
+		Selected []struct {
 			Number struct {
 				Value string `json:"_value"`
 			} `json:"Number"`
@@ -134,25 +134,25 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPageFirst(groupId string) ([]string, 
 		"{\"Id\":%s}",
 		groupId)
 
-	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host + "/api/GroupList/set", "application/json", bytes.NewBufferString(requestBody))
+	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host+"/api/GroupList/set", "application/json", bytes.NewBufferString(requestBody))
 	if err != nil {
-		return nil,  "", fmt.Errorf("unable to make GroupList/set request: %w", err)
+		return nil, "", fmt.Errorf("unable to make GroupList/set request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return nil, "",  fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return nil, "", fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, "",  fmt.Errorf("unable to read response body: %w", err)
+		return nil, "", fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	var response struct {
 		ActiveObject GroupListEntryObject `json:"ActiveObject"`
-		Id int `json:"Id"`
+		Id           int                  `json:"Id"`
 	}
 	err = json.Unmarshal(respBody, &response)
 	if err != nil {
@@ -173,7 +173,7 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPage(objectId string, start int) ([]s
 		"{\"Path\":{\"ObjectId\":\"%s\",\"PropertyPath\":[{\"Name\":\"Members\"}]},\"PropertyValue\":{\"State\":{\"Start\":%d,\"SortBy\":null,\"Reverse\":false,\"Search\":\"\"}}}",
 		objectId, start)
 
-	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host + "/api/edit/update", "application/json", bytes.NewBufferString(requestBody))
+	resp, err := z.Client3CX.Post(z.Config.Phone3CX.Host+"/api/edit/update", "application/json", bytes.NewBufferString(requestBody))
 	if err != nil {
 		return nil, fmt.Errorf("unable to make group member listing request: %w", err)
 	}
@@ -218,7 +218,7 @@ func (z *ZammadBridge) Fetch3CXGroupId(groupName string) (Id string, Count int, 
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		err =  fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		err = fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
 		return
 	}
 
@@ -228,11 +228,11 @@ func (z *ZammadBridge) Fetch3CXGroupId(groupName string) (Id string, Count int, 
 		return
 	}
 
-	var groupListResponse struct{
-		List []struct{
-			Id int `json:"Id"`
-			Name string `json:"Name"`
-			ExtensionsCount int `json:"ExtensionsCount"`
+	var groupListResponse struct {
+		List []struct {
+			Id              int    `json:"Id"`
+			Name            string `json:"Name"`
+			ExtensionsCount int    `json:"ExtensionsCount"`
 		} `json:"list"`
 	}
 	err = json.Unmarshal(respBody, &groupListResponse)

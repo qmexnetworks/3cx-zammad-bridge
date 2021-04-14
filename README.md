@@ -8,7 +8,9 @@ Monitors calls in 3CX and communicates this to Zammad accordingly.
 
 ## Installation
 
-T.B.D.
+- Download the latest release binary from [releases](https://github.com/qmexnetworks/3cx-zammad-bridge/releases).
+    - Copy the binary into `/usr/local/bin`
+- `chmod +x zammadbridge`
 
 ## Configuration
 
@@ -46,13 +48,20 @@ Example supervisord config:
 
 ```ini
 [program:3cx-zammad-bridge]
-directory=/opt/3cx-zammad-bridge/
-command=/opt/3cx-zammad-bridge/venv/bin/python3.9 src
-user=zammad-bridge
-autostart=true
-autorestart=true
-startretries=10
-stderr_logfile=/var/log/3cx-zammad-bridge.err.log
-stdout_logfile=/var/log/3cx-zammad-bridge.out.log
+command = /usr/local/bin/zammadbridge
+autostart = true
+autorestart = true
+startretries = 10
+stderr_logfile = /var/log/3cx-zammad-bridge.err.log
+stdout_logfile = /var/log/3cx-zammad-bridge.out.log
+
+# Optionally specify a user
+user = zammad-bridge
 ```
 
+## Development
+
+You can build the binary by running `make build`
+
+Theoretically, this should also run on Windows. You can compile it yourself and
+report possible issues. 
