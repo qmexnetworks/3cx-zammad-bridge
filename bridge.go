@@ -166,7 +166,7 @@ func (z *ZammadBridge) isInboundCall(call *CallInformation) bool {
 		return false
 	}
 
-	if len(call.CalleeName) != z.Config.Phone3CX.ExtensionDigits {
+	if len(call.CalleeNumber) != z.Config.Phone3CX.ExtensionDigits {
 		return false
 	}
 
