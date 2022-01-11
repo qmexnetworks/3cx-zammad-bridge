@@ -90,15 +90,14 @@ endedCallLoop:
 		endedCalls = append(endedCalls, callId)
 		if oldInfo.Status == "Routing" {
 			StdOut.Printf("Call with ID %s %s was not answered", oldInfo.CallUID, oldInfo.Direction)
-			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"))
+			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"), "hangup-from-routing")
 		} else if oldInfo.Status == "Talking" {
 			StdOut.Printf("Call with ID %s %s was hangup", oldInfo.CallUID, oldInfo.Direction)
-			z.LogIfErr(z.ZammadHangup(&oldInfo, "normalClearing"))
+			z.LogIfErr(z.ZammadHangup(&oldInfo, "normalClearing"), "hangup-from-talking")
 		} else if oldInfo.Status == "Transferring" && z.Config.Zammad.LogMissedQueueCalls {
 			StdOut.Printf("Queue call with ID %s %s was not answered", oldInfo.CallUID, oldInfo.Direction)
 			oldInfo.AgentNumber = strconv.Itoa(z.Config.Phone3CX.QueueExtension)
-			z.LogIfErr(z.ZammadNewCall(&oldInfo))
-			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"))
+			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"), "hangup-from-transferring")
 		}
 	}
 
@@ -131,28 +130,27 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 
 	if z.isNewCall(call) {
 		// Save it for the first time
-		if call.Status == "Routing" || call.Status == "Transferring" {
-			call.CallUID = uuid.NewV4().String()
+		call.CallUID = uuid.NewV4().String()
 
-			if call.Status == "Routing" {
-				StdOut.Printf("New call with ID %s %s from %s to %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
-				z.LogIfErr(z.ZammadNewCall(call))
-			} else if call.Status == "Transferring" {
-				StdOut.Printf("New queue call with ID %s %s from %s to %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
-				// Not sending NewCall to Zammad yet -- will happen as soon as it is Status == "Talking"
-			}
-		}
+		// Notify all active Zammad clients that someone is calling
+		StdOut.Printf("New call (%s) with ID %s %s from %s to %s", call.Status, call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+		z.LogIfErr(z.ZammadNewCall(call), "new-call")
 	} else {
 		// Update call information
 		previous := z.ongoingCalls[call.Id]
 		call.CallUID = previous.CallUID
-		if call.Status == "Talking" && previous.Status == "Routing" {
-			StdOut.Printf("Call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
-			z.LogIfErr(z.ZammadAnswer(call))
-		} else if call.Status == "Talking" && previous.Status == "Transferring" {
-			StdOut.Printf("Queue call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
-			z.LogIfErr(z.ZammadNewCall(call))
-			z.LogIfErr(z.ZammadAnswer(call))
+		call.ZammadInitialized = previous.ZammadInitialized
+		call.ZammadAnswered = previous.ZammadAnswered
+
+		// If the call is now "Talking", it means we are currently talking to someone. It is with someone of our loaded
+		// extensions due to the early-return that otherwise would have happened.
+		// We should then, for once, let Zammad know we answered this call. Since the "Talking" status can be present
+		// every tick, we need to check if we already notified Zammad and only notify Zammad as-needed.
+		if call.Status == "Talking" {
+			if !previous.ZammadAnswered {
+				StdOut.Printf("Call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+				z.LogIfErr(z.ZammadAnswer(call), "answer")
+			}
 		}
 	}
 
@@ -219,10 +217,10 @@ func (z *ZammadBridge) ParsePhoneNumber(number string) string {
 }
 
 // LogIfErr logs to stderr when an error occurs, doing nothing when err is nil.
-func (z *ZammadBridge) LogIfErr(err error) {
+func (z *ZammadBridge) LogIfErr(err error, context string) {
 	if err == nil {
 		return
 	}
 
-	StdErr.Println("Error", err.Error())
+	StdErr.Println("Error", context, err.Error())
 }

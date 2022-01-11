@@ -17,7 +17,9 @@ type CallInformation struct {
 	Callee string      `json:"Callee"`
 
 	// Status has possible values: "Talking", "Transferring", "Routing"
-	Status string `json:"Status"`
+	Status            string `json:"Status"`
+	ZammadInitialized bool
+	ZammadAnswered    bool
 
 	// Various processed fields
 	CallerName     string
@@ -60,7 +62,7 @@ func (z *ZammadBridge) Fetch3CXCalls() ([]CallInformation, error) {
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return nil, fmt.Errorf("unexpected response fetching the ongoing call list from 3CX (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -142,7 +144,7 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPageFirst(groupId string) ([]string, 
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return nil, "", fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return nil, "", fmt.Errorf("unexpected response fetching 3CX group membership assignments (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -181,7 +183,7 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPage(objectId string, start int) ([]s
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return nil, fmt.Errorf("unexpected response fetching 3CX group membership assignments (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -218,7 +220,7 @@ func (z *ZammadBridge) Fetch3CXGroupId(groupName string) (Id string, Count int, 
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		err = fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		err = fmt.Errorf("unexpected response fetching 3CX group info (HTTP %d): %s", resp.StatusCode, string(data))
 		return
 	}
 
@@ -274,7 +276,7 @@ func (z *ZammadBridge) Authenticate3CX() error {
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return fmt.Errorf("unexpected response authenticating 3CX (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	return z.Fetch3CXGroupMembers()

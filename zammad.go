@@ -22,7 +22,7 @@ type ZammadApiRequest struct {
 // ZammadNewCall notifies Zammad that a new call came in. This is the
 // first call required to process calls using Zammad.
 func (z *ZammadBridge) ZammadNewCall(call *CallInformation) error {
-	return z.ZammadPost(ZammadApiRequest{
+	err := z.ZammadPost(ZammadApiRequest{
 		Event:           "newCall",
 		From:            call.CallFrom,
 		To:              call.CallTo,
@@ -31,6 +31,12 @@ func (z *ZammadBridge) ZammadNewCall(call *CallInformation) error {
 		AnsweringNumber: call.AgentNumber,
 		User:            call.AgentName,
 	})
+	call.ZammadInitialized = true
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ZammadAnswer notifies Zammad that the existing call was now answered by
@@ -41,7 +47,18 @@ func (z *ZammadBridge) ZammadAnswer(call *CallInformation) error {
 		user = call.AgentName
 	}
 
-	return z.ZammadPost(ZammadApiRequest{
+	if !call.ZammadInitialized {
+		err := z.ZammadNewCall(call)
+		if err != nil {
+			return fmt.Errorf("unable to initialize call with Zammad: %w", err)
+		}
+	}
+
+	if call.ZammadAnswered {
+		return nil // Nothing to do - TODO: can we redirect the call in Zammad?
+	}
+
+	err := z.ZammadPost(ZammadApiRequest{
 		Event:           "answer",
 		From:            call.CallFrom,
 		To:              call.CallTo,
@@ -50,11 +67,25 @@ func (z *ZammadBridge) ZammadAnswer(call *CallInformation) error {
 		AnsweringNumber: call.AgentNumber,
 		User:            user,
 	})
+	call.ZammadAnswered = true
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ZammadHangup notifies Zammad that the call was finished with a given cause.
 // Possible values for `cause` are: "cancel", "normalClearing"
 func (z *ZammadBridge) ZammadHangup(call *CallInformation, cause string) error {
+	if !call.ZammadInitialized {
+		err := z.ZammadNewCall(call)
+		if err != nil {
+			return fmt.Errorf("unable to initialize call with Zammad: %w", err)
+		}
+	}
+
 	return z.ZammadPost(ZammadApiRequest{
 		Event:           "hangup",
 		From:            call.CallFrom,
@@ -90,7 +121,7 @@ func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected response (HTTP %d): %s", resp.StatusCode, string(data))
+		return fmt.Errorf("unexpected response from Zammad (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	return nil
