@@ -87,6 +87,7 @@ endedCallLoop:
 		}
 
 		// Apparently the call has ended, because 3CX does not report it any longer
+		StdVerbose.Printf("Call with 3CX-ID %s and Zammad-ID %s not reported by 3CX, assuming call ended", callId, oldInfo.CallUID)
 		endedCalls = append(endedCalls, callId)
 		if oldInfo.Status == "Routing" {
 			StdOut.Printf("Call with ID %s %s was not answered", oldInfo.CallUID, oldInfo.Direction)

@@ -114,13 +114,13 @@ func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 		return fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}
 
-	StdVerbose.Printf("Zammad Request - JSON Body: %s\n", string(requestBody))
+	StdVerbose.Printf("Zammad Request - JSON Body: %s", string(requestBody))
 	resp, err := z.ClientZammad.Post(z.Config.Zammad.Endpoint, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("unable to make request: %w", err)
 	}
 
-	StdVerbose.Printf("Zammad Response - HTTP %d\n", resp.StatusCode)
+	StdVerbose.Printf("Zammad Response - HTTP %d", resp.StatusCode)
 
 	if resp.StatusCode >= 300 {
 		data, _ := ioutil.ReadAll(resp.Body)
