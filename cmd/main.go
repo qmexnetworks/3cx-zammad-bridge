@@ -29,6 +29,12 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
+	var verboseMode bool
+	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output -- not for production")
+	if verboseMode {
+		zammadbridge.EnableVerboseLogging()
+	}
+
 	c, err := zammadbridge.LoadConfigFromYaml(
 		"config.yaml",
 		"/etc/3cx-zammad-bridge/config.yaml",
