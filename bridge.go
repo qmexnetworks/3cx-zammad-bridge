@@ -48,6 +48,8 @@ func (z *ZammadBridge) Listen() error {
 	for {
 		err = z.RequestAndProcess()
 		if err != nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403")) {
+			StdVerbose.Println("Reconnecting due to", err.Error())
+
 			// Authentication error
 			err = z.Authenticate3CXRetries(time.Second * 120)
 			if err != nil {
