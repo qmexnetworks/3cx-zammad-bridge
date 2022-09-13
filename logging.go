@@ -14,5 +14,5 @@ var (
 
 // EnableVerboseLogging enables verbose debug statements to Stdout
 func EnableVerboseLogging() {
-	StdVerbose = log.New(os.Stdout, "VERBOSE", log.LstdFlags)
+	StdVerbose = log.New(os.Stdout, "[VERBOSE] ", log.LstdFlags)
 }
