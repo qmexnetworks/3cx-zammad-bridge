@@ -94,7 +94,7 @@ func (z *ZammadBridge) Fetch3CXCalls() ([]CallInformation, error) {
 	return response.List, nil
 }
 
-//Fetch3CXGroupMembers fetches the details on group members of the 3CX group that we are monitoring.
+// Fetch3CXGroupMembers fetches the details on group members of the 3CX group that we are monitoring.
 func (z *ZammadBridge) Fetch3CXGroupMembers() error {
 	// Request to /api/edit/update with complex payload
 	groupId, count, err := z.Fetch3CXGroupId(z.Config.Phone3CX.Group)

@@ -4,8 +4,9 @@ import (
 	"log"
 	"os"
 
-	zammadbridge "github.com/qmexnetworks/3cx-zammad-bridge"
 	"github.com/spf13/cobra"
+
+	zammadbridge "github.com/qmexnetworks/3cx-zammad-bridge"
 )
 
 var (
@@ -31,6 +32,8 @@ var rootCmd = &cobra.Command{
 func main() {
 	var verboseMode bool
 	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output -- not for production")
+	_ = rootCmd.ParseFlags(os.Args)
+
 	if verboseMode {
 		zammadbridge.EnableVerboseLogging()
 	}
