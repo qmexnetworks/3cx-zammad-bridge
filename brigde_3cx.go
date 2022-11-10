@@ -122,6 +122,10 @@ func (z *ZammadBridge) Fetch3CXGroupMembers() error {
 			allExtensions = append(allExtensions, e)
 		}
 
+		if len(extensions) == 0 {
+			break
+		}
+
 		startIndex += len(extensions)
 	}
 
