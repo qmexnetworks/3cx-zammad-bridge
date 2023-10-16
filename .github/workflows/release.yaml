@@ -21,6 +21,6 @@ jobs:
           build_flags: "--tags netgo --trimpath"
           binary_name: "zammadbridge-linux-amd64"
           compress_assets: "OFF"
-          asset_name: "${BINARY_NAME}-${GOOS}-${GOARCH}"
+          asset_name: "zammadbridge-linux-amd64"
           md5sum: 'TRUE'
           sha256sum: 'TRUE'
