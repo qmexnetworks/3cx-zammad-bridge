@@ -23,6 +23,7 @@ jobs:
           ldflags: "-buildid= -extldflags \"-static\" -w -s"
           build_flags: "--tags netgo --trimpath"
           binary_name: "zammadbridge-linux-amd64-binary"
+          project_path: './cmd'
           compress_assets: "OFF"
           asset_name: "zammadbridge-linux-amd64"
           md5sum: 'TRUE'
