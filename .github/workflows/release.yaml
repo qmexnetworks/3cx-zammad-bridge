@@ -19,7 +19,7 @@ jobs:
           goarch: amd64
           ldflags: "-w -s"
           build_flags: "--tags netgo --trimpath"
-          binary_name: "zammadbridge-linux-amd64"
+          binary_name: "zammadbridge-linux-amd64-binary"
           compress_assets: "OFF"
           asset_name: "zammadbridge-linux-amd64"
           md5sum: 'TRUE'
