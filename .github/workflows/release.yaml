@@ -17,7 +17,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: linux
           goarch: amd64
-          ldflags: "-w -s"
+          ldflags: "-buildid= -extldflags \"-static\" -w -s"
           build_flags: "--tags netgo --trimpath"
           binary_name: "zammadbridge-linux-amd64-binary"
           compress_assets: "OFF"
