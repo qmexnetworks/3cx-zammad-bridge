@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 type ZammadBridge struct {
@@ -133,7 +133,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 
 	if z.isNewCall(call) {
 		// Save it for the first time
-		call.CallUID = uuid.NewV4().String()
+		call.CallUID = uuid.New().String()
 
 		// Notify all active Zammad clients that someone is calling
 		StdOut.Printf("New call (%s) with ID %s %s from %s to %s", call.Status, call.CallUID, call.Direction, call.CallFrom, call.CallTo)

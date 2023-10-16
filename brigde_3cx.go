@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"strconv"
 	"strings"
@@ -61,11 +61,11 @@ func (z *ZammadBridge) Fetch3CXCalls() ([]CallInformation, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected response fetching the ongoing call list from 3CX (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
@@ -147,11 +147,11 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPageFirst(groupId string) ([]string, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return nil, "", fmt.Errorf("unexpected response fetching 3CX group membership assignments (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to read response body: %w", err)
 	}
@@ -186,11 +186,11 @@ func (z *ZammadBridge) Fetch3CXGroupMembersPage(objectId string, start int) ([]s
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected response fetching 3CX group membership assignments (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
@@ -223,12 +223,12 @@ func (z *ZammadBridge) Fetch3CXGroupId(groupName string) (Id string, Count int, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		err = fmt.Errorf("unexpected response fetching 3CX group info (HTTP %d): %s", resp.StatusCode, string(data))
 		return
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("unable to read response body: %w", err)
 		return
@@ -279,7 +279,7 @@ func (z *ZammadBridge) Authenticate3CX() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected response authenticating 3CX (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 

@@ -1,7 +1,7 @@
 package zammadbridge
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 )
@@ -9,7 +9,7 @@ import (
 var (
 	StdErr     = log.New(os.Stderr, "", log.LstdFlags)
 	StdOut     = log.New(os.Stdout, "", log.LstdFlags)
-	StdVerbose = log.New(ioutil.Discard, "", log.LstdFlags)
+	StdVerbose = log.New(io.Discard, "", log.LstdFlags)
 )
 
 // EnableVerboseLogging enables verbose debug statements to Stdout

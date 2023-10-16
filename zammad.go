@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 )
 
 type ZammadApiRequest struct {
@@ -123,7 +123,7 @@ func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 	StdVerbose.Printf("Zammad Response - HTTP %d", resp.StatusCode)
 
 	if resp.StatusCode >= 300 {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected response from Zammad (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
