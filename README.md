@@ -34,6 +34,7 @@ Bridge:
     extension_digits: 3 # numeric; How many digits the internal extensions have 
     trunk_digits: 5 # numeric; How many digits the numbers in the trunk have
     queue_extension: 816 # numeric; The number of the queue that the bridge should also listen to
+    country_prefix: 49 # numeric; optional; The country dialing prefix to remove from the numbers
 
 Zammad:
     endpoint: https://zammad.example.com/api/v1/cti/secret # The URL of your Zammad server, including the secret in the URL

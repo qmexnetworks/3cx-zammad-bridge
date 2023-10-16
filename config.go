@@ -20,6 +20,7 @@ type Config struct {
 		ExtensionDigits int    `yaml:"extension_digits"`
 		TrunkDigits     int    `yaml:"trunk_digits"`
 		QueueExtension  int    `yaml:"queue_extension"`
+		CountryPrefix   string `yaml:"country_prefix"`
 	} `yaml:"3CX"`
 	Zammad struct {
 		Endpoint            string `yaml:"endpoint"`

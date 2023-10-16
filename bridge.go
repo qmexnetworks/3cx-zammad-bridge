@@ -208,14 +208,27 @@ func (z *ZammadBridge) ParsePhoneNumber(number string) string {
 		number = number[strings.Index(number, "(")+1 : strings.LastIndex(number, ")")]
 	}
 
-	// TODO what if +49/Germany isn't the default? See 3CX settings.
-	// old filter, should better be done in 3CX E.164
-	if strings.HasPrefix(number, "+49") {
-		number = "0" + number[3:]
-	} else if strings.HasPrefix(number, "49") {
-		number = "0" + number[2:]
+	// If no prefix is configured, we cannot do anything
+	if z.Config.Phone3CX.CountryPrefix == "" {
+		return number
 	}
 
+	// If it starts with e.g., +49, we remove that prefix and add a 0 instead
+	if strings.HasPrefix(number, "+"+z.Config.Phone3CX.CountryPrefix) {
+		return "0" + number[len(z.Config.Phone3CX.CountryPrefix)+1:]
+	}
+
+	// If it starts with e.g., 0049, we remove that prefix and add a 0 instead
+	if strings.HasPrefix(number, "00"+z.Config.Phone3CX.CountryPrefix) {
+		return "0" + number[len(z.Config.Phone3CX.CountryPrefix)+2:]
+	}
+
+	// If it starts with e.g., 49, we remove that prefix and add a 0 instead
+	if strings.HasPrefix(number, z.Config.Phone3CX.CountryPrefix) {
+		return "0" + number[len(z.Config.Phone3CX.CountryPrefix):]
+	}
+
+	// Apparently the number doesn't start with any of that, so we assume it is already in the correct format
 	return number
 }
 

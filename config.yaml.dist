@@ -9,6 +9,7 @@ Bridge:
   extension_digits: 3
   trunk_digits: 5
   queue_extension: 816
+  country_prefix: 49
 
 Zammad:
   endpoint: https://zammad.example.com/api/v1/cti/secret
