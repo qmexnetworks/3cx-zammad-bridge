@@ -20,3 +20,7 @@ jobs:
           ldflags: "-w -s"
           build_flags: "--tags netgo --trimpath"
           binary_name: "zammadbridge-linux-amd64"
+          compress_assets: "OFF"
+          asset_name: "${BINARY_NAME}-${GOOS}-${GOARCH}"
+          md5sum: 'TRUE'
+          sha256sum: 'TRUE'
