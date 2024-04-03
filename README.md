@@ -1,3 +1,6 @@
+> [!CAUTION]
+> So far its not working with 3CX V20, 3CX announced a new API for Update 2 as soon as the new API is out we can make the bridge work again, as 3CX V20 is not feature complete yet, you should stick with V18
+
 # 3cx-zammad-bridge
 
 Monitors calls in 3CX and communicates this to Zammad accordingly.
