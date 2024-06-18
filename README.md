@@ -1,5 +1,5 @@
 > [!CAUTION]
-> So far its not working with 3CX V20, 3CX announced a new API for Update 2 as soon as the new API is out we can make the bridge work again, as 3CX V20 is not feature complete yet, you should stick with V18
+> So far its not working with 3CX V20, 3CX announced a new API for Update 2 as soon as the new API is out we can make the bridge work again, as 3CX V20 is not feature complete yet, you should stick with V18\\
 > UPDATE June 2024: We already did some investigations on the new API and this new API doenst give us the tools to make this extension ready for V20. The only way will be the call control API (https://www.3cx.com/blog/releases/v20-call-control-api/) so far we have only .NET but a web version is announced which will be necerssary.
 
 # 3cx-zammad-bridge
