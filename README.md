@@ -65,6 +65,27 @@ stdout_logfile = /var/log/3cx-zammad-bridge.out.log
 user = zammad-bridge
 ```
 
+Example systemd service:
+
+```unit file (systemd)
+[Unit]
+Description=3cx-zammad-bridge
+After=network.target
+
+# If running on the same machine as 3CX, you might want to wait for it to start
+PartOf=3CXGatewayService.service
+
+[Service]
+User=zammad-bridge
+Group=zammad-bridge
+ExecStart=/usr/local/bin/zammadbridge
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ## Help
 ```
 3cx-zammad-bridge is a bridge that listens on 3cx to forward information to zammad
