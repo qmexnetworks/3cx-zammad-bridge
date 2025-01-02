@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -30,13 +31,13 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func main() {
-	var verboseMode bool
-	var traceMode bool
-	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output -- not for production")
-	rootCmd.PersistentFlags().BoolVarP(&traceMode, "trace", "", false, "trace output -- not for production")
-	_ = rootCmd.ParseFlags(os.Args)
+var (
+	verboseMode bool
+	traceMode   bool
+	logFormat   string
+)
 
+func setupLogging() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if verboseMode {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -44,6 +45,29 @@ func main() {
 	if traceMode {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
+	if logFormat == "plain" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.DateTime})
+	}
+
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.FormattedLevels = map[zerolog.Level]string{
+		zerolog.TraceLevel: "TRACE",
+		zerolog.DebugLevel: "DEBUG",
+		zerolog.InfoLevel:  "INFO",
+		zerolog.WarnLevel:  "WARN",
+		zerolog.ErrorLevel: "ERROR",
+		zerolog.FatalLevel: "FATAL",
+		zerolog.PanicLevel: "PANIC",
+	}
+}
+
+func main() {
+	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&traceMode, "trace", "", false, "trace output, super verbose")
+	rootCmd.PersistentFlags().StringVarP(&logFormat, "log-format", "f", "json", "log format: \"json\" or \"plain\"")
+	_ = rootCmd.ParseFlags(os.Args)
+
+	setupLogging()
 
 	c, err := zammadbridge.LoadConfigFromYaml(
 		"config.yaml",

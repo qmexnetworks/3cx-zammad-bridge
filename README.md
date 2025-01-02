@@ -65,6 +65,20 @@ stdout_logfile = /var/log/3cx-zammad-bridge.out.log
 user = zammad-bridge
 ```
 
+## Help
+```
+3cx-zammad-bridge is a bridge that listens on 3cx to forward information to zammad
+
+Usage:
+  zammadbridge [flags]
+
+Flags:
+  -h, --help                help for zammadbridge
+  -f, --log-format string   log format: "json" or "plain" (default "json")
+      --trace               trace output, super verbose
+  -v, --verbose             verbose output
+```
+
 ## Development
 
 You can build the binary by running `make build`

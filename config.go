@@ -2,9 +2,9 @@ package zammadbridge
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -43,7 +43,7 @@ func LoadConfigFromYaml(filenames ...string) (*Config, error) {
 
 		err = yaml.Unmarshal(b, config)
 		if err != nil {
-			log.Printf("WARNING: Unable to parse YAML config %s: %q", f, err.Error())
+			log.Warn().Err(err).Str("file", f).Msg("Unable to parse YAML config")
 			continue // hopefully other files will work out?
 		}
 
