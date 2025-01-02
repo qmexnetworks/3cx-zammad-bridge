@@ -106,3 +106,7 @@ You can build the binary by running `make build`
 
 Theoretically, this should also run on Windows. You can compile it yourself and
 report possible issues. 
+
+## Support
+
+Premium support is available at [Q-MEX Networks GmbH](https://www.qmex.net)
