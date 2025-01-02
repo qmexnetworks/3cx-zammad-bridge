@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	zammadbridge "github.com/qmexnetworks/3cx-zammad-bridge"
@@ -31,11 +32,17 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	var verboseMode bool
+	var traceMode bool
 	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output -- not for production")
+	rootCmd.PersistentFlags().BoolVarP(&traceMode, "trace", "", false, "trace output -- not for production")
 	_ = rootCmd.ParseFlags(os.Args)
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if verboseMode {
-		zammadbridge.EnableVerboseLogging()
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+	if traceMode {
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
 
 	c, err := zammadbridge.LoadConfigFromYaml(
@@ -44,16 +51,17 @@ func main() {
 		"//3cx-zammad-bridge/config.yaml",
 	)
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Fatal().Err(err).Msg("Unable to load configuration")
 	}
 
 	client, err = zammadbridge.NewZammadBridge(c)
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Fatal().Err(err).Msg("Unable to create Zammad bridge")
 	}
 
 	err = rootCmd.Execute()
 	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to execute command")
 		os.Exit(1)
 	}
 }

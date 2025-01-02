@@ -4,59 +4,52 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/cookiejar"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type ZammadBridge struct {
 	Config *Config
 
-	Client3CX    http.Client
+	Client3CX    API3CX
 	ClientZammad http.Client
 
-	phoneExtensions map[string]struct{}
-	ongoingCalls    map[json.Number]CallInformation
+	ongoingCalls map[json.Number]CallInformation
 }
 
 // NewZammadBridge initializes a new client that listens for 3CX calls and forwards to Zammad.
 func NewZammadBridge(config *Config) (*ZammadBridge, error) {
-	jar, err := cookiejar.New(nil)
+	client3CX, err := Create3CXClient(config)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create cookiejar: %w", err)
+		return nil, fmt.Errorf("unable to create 3CX client: %w", err)
 	}
 
 	return &ZammadBridge{
-		Config: config,
-		Client3CX: http.Client{
-			Jar: jar,
-		},
+		Config:       config,
+		Client3CX:    client3CX,
 		ongoingCalls: map[json.Number]CallInformation{},
 	}, nil
 }
 
 // Listen listens for calls and does not return unless something really bad happened.
 func (z *ZammadBridge) Listen() error {
-	err := z.Authenticate3CXRetries(time.Second * 120)
-	if err != nil {
-		return fmt.Errorf("unable to authenticate: %w", err)
-	}
-
+	log.Info().Msg("Starting 3CX-Zammad bridge (fetching calls every " + strconv.FormatFloat(z.Config.Bridge.PollInterval, 'f', -1, 64) + " seconds)")
 	for {
-		err = z.RequestAndProcess()
+		err := z.RequestAndProcess()
 		if err != nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403")) {
-			StdVerbose.Println("Reconnecting due to", err.Error())
+			log.Trace().Err(err).Msg("Reconnecting due to authentication error")
 
 			// Authentication error
-			err = z.Authenticate3CXRetries(time.Second * 120)
+			err = z.Client3CX.AuthenticateRetry(time.Second * 120)
 			if err != nil {
 				return fmt.Errorf("unable to authenticate: %w", err)
 			}
 		} else if err != nil {
-			StdErr.Println("Error", err.Error())
+			log.Error().Err(err).Msg("Error processing calls")
 		}
 
 		// Wait until the next polling should occur
@@ -66,12 +59,12 @@ func (z *ZammadBridge) Listen() error {
 
 // RequestAndProcess requests the current calls from 3CX and processes them to Zammad
 func (z *ZammadBridge) RequestAndProcess() error {
-	calls, err := z.Fetch3CXCalls()
+	calls, err := z.Client3CX.FetchCalls()
 	newCalls := make([]json.Number, 0, len(calls))
 	for _, c := range calls {
 		err = z.ProcessCall(&c)
 		if err != nil {
-			StdErr.Println("Warning - error processing call", err.Error())
+			log.Warn().Err(err).Msg("Warning - error processing call")
 		}
 
 		newCalls = append(newCalls, c.Id)
@@ -88,17 +81,17 @@ endedCallLoop:
 			}
 		}
 
-		// Apparently the call has ended, because 3CX does not report it any longer
-		StdVerbose.Printf("Call with 3CX-ID %s and Zammad-ID %s not reported by 3CX, assuming call ended", callId, oldInfo.CallUID)
+		// Apparently, the call has ended, because 3CX does not report it any longer
+		log.Trace().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Call ended (no longer reported by 3CX)")
 		endedCalls = append(endedCalls, callId)
 		if oldInfo.Status == "Routing" {
-			StdOut.Printf("Call with ID %s %s was not answered", oldInfo.CallUID, oldInfo.Direction)
+			log.Info().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Call ended (hangup from routing)")
 			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"), "hangup-from-routing")
 		} else if oldInfo.Status == "Talking" {
-			StdOut.Printf("Call with ID %s %s was hangup", oldInfo.CallUID, oldInfo.Direction)
+			log.Info().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Call ended (hangup from talking)")
 			z.LogIfErr(z.ZammadHangup(&oldInfo, "normalClearing"), "hangup-from-talking")
 		} else if oldInfo.Status == "Transferring" && z.Config.Zammad.LogMissedQueueCalls {
-			StdOut.Printf("Queue call with ID %s %s was not answered", oldInfo.CallUID, oldInfo.Direction)
+			log.Info().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Queue call was not answered")
 			oldInfo.AgentNumber = strconv.Itoa(z.Config.Phone3CX.QueueExtension)
 			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"), "hangup-from-transferring")
 		}
@@ -136,7 +129,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		call.CallUID = uuid.New().String()
 
 		// Notify all active Zammad clients that someone is calling
-		StdOut.Printf("New call (%s) with ID %s %s from %s to %s", call.Status, call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+		log.Info().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("New call")
 		z.LogIfErr(z.ZammadNewCall(call), "new-call")
 	} else {
 		// Update call information
@@ -151,7 +144,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		// every tick, we need to check if we already notified Zammad and only notify Zammad as-needed.
 		if call.Status == "Talking" {
 			if !previous.ZammadAnswered {
-				StdOut.Printf("Call with ID %s %s from %s was answered by %s", call.CallUID, call.Direction, call.CallFrom, call.CallTo)
+				log.Info().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Call answered")
 				z.LogIfErr(z.ZammadAnswer(call), "answer")
 			}
 		}
@@ -171,7 +164,7 @@ func (z *ZammadBridge) isInboundCall(call *CallInformation) bool {
 		return false
 	}
 
-	if _, ok := z.phoneExtensions[call.CalleeNumber]; !ok {
+	if !z.Client3CX.IsExtension(call.CalleeNumber) {
 		return false
 	}
 
@@ -188,7 +181,7 @@ func (z *ZammadBridge) isOutboundCall(call *CallInformation) bool {
 		return false
 	}
 
-	if _, ok := z.phoneExtensions[call.CallerNumber]; !ok {
+	if !z.Client3CX.IsExtension(call.CallerNumber) {
 		return false
 	}
 
@@ -238,5 +231,5 @@ func (z *ZammadBridge) LogIfErr(err error, context string) {
 		return
 	}
 
-	StdErr.Println("Error", context, err.Error())
+	log.Error().Err(err).Msg(context)
 }

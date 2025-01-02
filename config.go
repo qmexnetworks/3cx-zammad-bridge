@@ -15,6 +15,8 @@ type Config struct {
 	Phone3CX struct {
 		User            string `yaml:"user"`
 		Pass            string `yaml:"pass"`
+		ClientID        string `yaml:"client_id"`
+		ClientSecret    string `yaml:"client_secret"`
 		Host            string `yaml:"host"`
 		Group           string `yaml:"group"`
 		ExtensionDigits int    `yaml:"extension_digits"`

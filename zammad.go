@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ZammadApiRequest struct {
@@ -114,13 +116,13 @@ func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 		return fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}
 
-	StdVerbose.Printf("Zammad Request - JSON Body: %s", string(requestBody))
+	log.Trace().Str("call_id", payload.CallId).Str("event", payload.Event).Str("from", payload.From).Str("to", payload.To).Msg("Zammad request (POST)")
 	resp, err := z.ClientZammad.Post(z.Config.Zammad.Endpoint, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("unable to make request: %w", err)
 	}
 
-	StdVerbose.Printf("Zammad Response - HTTP %d", resp.StatusCode)
+	log.Trace().Str("call_id", payload.CallId).Str("event", payload.Event).Str("from", payload.From).Str("to", payload.To).Int("status", resp.StatusCode).Msg("Zammad response (POST)")
 
 	if resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(resp.Body)
