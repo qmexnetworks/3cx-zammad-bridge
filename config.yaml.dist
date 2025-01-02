@@ -2,8 +2,13 @@ Bridge:
   poll_interval: 0.5
 
 3CX:
+  # For versions below v20, define these two:
   user: admin
   pass: secret
+  # For versions v20 and above, define these two:
+  client_id: your-custom-integration-api-user
+  client_secret: secret
+  # Always define these:
   host: https://3cx.example.com
   group: GROUPNAME
   extension_digits: 3

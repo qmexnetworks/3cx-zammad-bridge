@@ -32,8 +32,13 @@ Bridge:
   poll_interval: 0.5 # decimal; The number of seconds to wait in between polling 3CX for calls
 
 3CX:
+    # For versions below v20, define these two:
     user: "the username of a 3CX admin account"
     pass: "the password of a 3CX admin account"
+    # For versions v20 and above, define these two:
+    client_id: "the client ID you created in 'Admin' -> 'Integrations' -> 'API'"
+    client_secret: "the secret that was shown once"
+    # Always define these:
     host: "the URL of your 3CX server, including https://"
     group: "the name of the 3CX group that should be monitored, for example Support"
     extension_digits: 3 # numeric; How many digits the internal extensions have 
