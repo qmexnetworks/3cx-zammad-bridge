@@ -1,7 +1,6 @@
 > [!CAUTION]
-> So far its not working with 3CX V20, 3CX announced a new API for Update 2 as soon as the new API is out we can make the bridge work again, as 3CX V20 is not feature complete yet, you should stick with V18  
-> UPDATE June 2024: We already did some investigations on the new API and this new API doesnt give us the tools to make this extension ready for V20. The only way will be the call control API (https://www.3cx.com/blog/releases/v20-call-control-api/) so far we have only .NET but a web version is announced which will be necerssary.
-> UPDATE 30. July 2024: So far the new call control Web API was NOT released with V20 U2
+> Support for v20 and above is experimental and may not work as expected. Please report any issues you encounter.
+> Currently, only monitoring of extensions is supported. Monitoring of groups is not supported due to limitations of the 3CX permissions model.
 
 # 3cx-zammad-bridge
 
@@ -25,8 +24,16 @@ All configuration is done through the `config.yaml` file, that may appear in the
 - `/opt/3cx-zammad-bridge/config.yaml`
 - `config.yaml`  (within the working directory of this 3cx bridge process) 
 
-The first (found) configuration file will be used. Also refer to the `config.yaml.dist` file
-   
+The first (found) configuration file will be used. Also refer to the `config.yaml.dist` file.
+
+For 3CX versions 20 and above, it's important that you create a client ID and secret in the 3CX web interface. 
+You have to add all extensions that you want to monitor to the Call Control API permissions in the 3CX web interface for
+the client ID you create.
+Note that monitoring groups this way is not supported (due to limitations of the 3CX permissions model). 
+You have to add all extensions manually.
+
+Example configuration:
+
 ```yaml
 Bridge:
   poll_interval: 0.5 # decimal; The number of seconds to wait in between polling 3CX for calls
@@ -35,12 +42,12 @@ Bridge:
     # For versions below v20, define these two:
     user: "the username of a 3CX admin account"
     pass: "the password of a 3CX admin account"
+    group: "the name of the 3CX group that should be monitored, for example Support"
     # For versions v20 and above, define these two:
     client_id: "the client ID you created in 'Admin' -> 'Integrations' -> 'API'"
     client_secret: "the secret that was shown once"
     # Always define these:
     host: "the URL of your 3CX server, including https://"
-    group: "the name of the 3CX group that should be monitored, for example Support"
     extension_digits: 3 # numeric; How many digits the internal extensions have 
     trunk_digits: 5 # numeric; How many digits the numbers in the trunk have
     queue_extension: 816 # numeric; The number of the queue that the bridge should also listen to

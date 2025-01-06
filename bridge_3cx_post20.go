@@ -70,13 +70,10 @@ type CallControlResponseEntry struct {
 type Client3CXPost20 struct {
 	Config *Config
 
-	client          http.Client
-	phoneExtensions map[string]struct{}
+	client http.Client
 
 	// accessToken is a Bearer-token retrieved after a valid Authentication call. It will expire automatically.
 	accessToken string
-
-	ongoingCalls map[string]CallInformation
 }
 
 func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
@@ -121,6 +118,10 @@ func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
 		return nil, fmt.Errorf("unable to parse response JSON: %w", err)
 	}
 
+	log.Info().
+		Interface("response", callControlResponse).
+		Msg("Received call control response")
+
 	return z.aggregateCallResponse(callControlResponse), nil
 }
 
@@ -152,6 +153,8 @@ func (z *Client3CXPost20) aggregateCallResponse(response CallControlResponse) []
 // listenWS makes a Websocket connection to 3CX to "immediately" get updates on calls. This is a blocking function.
 //
 // Currently not used because the "immediate" updates aren't yet compatible with the current implementation.
+//
+// nolint:unused
 func (z *Client3CXPost20) listenWS() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
@@ -232,6 +235,7 @@ func (z *Client3CXPost20) listenWS() {
 	}
 }
 
+//nolint:unused
 func (z *Client3CXPost20) processWSMessage(msg []byte) error {
 	var response WebsocketResponse
 	err := json.Unmarshal(msg, &response)
@@ -265,11 +269,7 @@ func (z *Client3CXPost20) processWSMessage(msg []byte) error {
 	return nil
 }
 
-// fetchExtensions fetches the details on group members of the 3CX group that we are monitoring.
-func (z *Client3CXPost20) fetchExtensions() error {
-	return nil // TODO remove me
-}
-
+//nolint:unused
 func httpGET3CX[T any](z *Client3CXPost20, url string) (*T, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -415,7 +415,7 @@ func (z *Client3CXPost20) Authenticate() error {
 
 	log.Debug().Msg("Successfully authenticated to 3CX")
 
-	return z.fetchExtensions()
+	return nil
 }
 
 // AuthenticateRetry retries logging in a while (defined in maxOffline).
@@ -435,7 +435,7 @@ func (z *Client3CXPost20) AuthenticateRetry(maxOffline time.Duration) error {
 			downSince = time.Now()
 		}
 
-		if time.Now().Sub(downSince) > maxOffline {
+		if time.Since(downSince) > maxOffline {
 			return fmt.Errorf("unable to authenticate to 3CX: %w", err)
 		}
 
@@ -448,7 +448,8 @@ func (z *Client3CXPost20) AuthenticateRetry(maxOffline time.Duration) error {
 	return nil
 }
 
-func (z *Client3CXPost20) IsExtension(number string) bool {
-	_, ok := z.phoneExtensions[number]
-	return ok
+func (z *Client3CXPost20) IsExtension(_ string) bool {
+	// In v20 and above, we are only shown the extensions we are monitoring.
+	// Therefore, we can assume that if we are monitoring an extension, it is valid.
+	return true
 }

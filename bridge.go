@@ -121,8 +121,11 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		call.CallTo = call.AgentNumber
 		call.CallFrom = call.ExternalNumber
 	} else {
+		log.Trace().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Call is not relevant")
 		return nil
 	}
+
+	log.Trace().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Processing call")
 
 	if z.isNewCall(call) {
 		// Save it for the first time

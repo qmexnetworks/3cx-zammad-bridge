@@ -274,7 +274,7 @@ func (z *Client3CXPre20) AuthenticateRetry(maxOffline time.Duration) error {
 			downSince = time.Now()
 		}
 
-		if time.Now().Sub(downSince) > maxOffline {
+		if time.Since(downSince) > maxOffline {
 			return fmt.Errorf("unable to authenticate to 3CX (legacy): %w", err)
 		}
 
