@@ -405,10 +405,20 @@ func (z *Client3CXPost20) Authenticate() error {
 		AccessToken string `json:"access_token"`
 	}
 
-	// Decode the response body into the tokenResponse struct
-	err = json.NewDecoder(resp2.Body).Decode(&tokenResponse)
+	respBody, err := io.ReadAll(resp2.Body)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("unable to read response body: %w", err)
+	}
+
+	log.Trace().
+		Int("http_status", resp2.StatusCode).
+		Int("response_length", len(respBody)).
+		Msg("Received response from 3CX")
+
+	// Decode the response body into the tokenResponse struct
+	err = json.Unmarshal(respBody, &tokenResponse)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal access token: %w")
 	}
 
 	z.accessToken = tokenResponse.AccessToken
