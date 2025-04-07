@@ -12,7 +12,7 @@ import (
 )
 
 type CallInformation struct {
-	Id     json.Number `json:"Id"`
+	ID     json.Number `json:"Id"`
 	Caller string      `json:"Caller"`
 	Callee string      `json:"Callee"`
 
@@ -20,6 +20,10 @@ type CallInformation struct {
 	Status            string `json:"Status"`
 	ZammadInitialized bool
 	ZammadAnswered    bool
+
+	// Timestamps
+	LastChangeStatus time.Time `json:"LastChangeStatus"`
+	EstablishedAt    time.Time `json:"EstablishedAt"`
 
 	// Various processed fields
 	CallerName     string

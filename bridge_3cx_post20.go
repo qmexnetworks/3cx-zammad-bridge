@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,15 +19,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type WebsocketEventType int
-type WebsocketResponse struct {
-	Sequence int `json:"sequence"`
-	Event    struct {
-		EventType    WebsocketEventType `json:"event_type"`
-		Entity       string             `json:"entity"`
-		AttachedData *json.RawMessage   `json:"attached_data"`
-	} `json:"event"`
-}
+type (
+	WebsocketEventType int
+	WebsocketResponse  struct {
+		Sequence int `json:"sequence"`
+		Event    struct {
+			EventType    WebsocketEventType `json:"event_type"`
+			Entity       string             `json:"entity"`
+			AttachedData *json.RawMessage   `json:"attached_data"`
+		} `json:"event"`
+	}
+)
 
 const (
 	WebsocketEventTypeUpsert     WebsocketEventType = 0
@@ -38,7 +41,7 @@ const (
 type CallParticipant struct {
 	ID int `json:"id"`
 
-	// Status is the status of the call. Possible values include: "Dialing", "Ringing",
+	// Status is the status of the call. Possible values include: "Dialing", "Ringing", "Connected"
 	Status string `json:"status"`
 
 	// DN is the extension number of the participant.
@@ -83,7 +86,7 @@ func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
 	// {"level":"debug","entity":"{\"id\":8106,\"status\":\"Ringing\",\"dn\":\"150\",\"party_caller_name\":\"+49123456789\",\"party_dn\":\"10007\",\"party_caller_id\":\"0123456789\",\"party_did\":\"\",\"device_id\":\"sip:150@127.0.0.1:5483;rinstance=c2a75fd2f1caea71\",\"party_dn_type\":\"Wexternalline\",\"direct_control\":false,\"originated_by_dn\":\"ROUTER\",\"originated_by_type\":\"Wroutepoint\",\"referred_by_dn\":\"\",\"referred_by_type\":\"None\",\"on_behalf_of_dn\":\"\",\"on_behalf_of_type\":\"None\",\"callid\":1264,\"legid\":4}","sequence":15,"event_type":0,"time":"2024-12-30T15:11:48+01:00","message":"Received from 3CX WS"}
 
 	values := url.Values{}
-	req, err := http.NewRequest("GET", z.Config.Phone3CX.Host+"/callcontrol?"+values.Encode(), nil)
+	req, err := http.NewRequest(http.MethodGet, z.Config.Phone3CX.Host+"/callcontrol?"+values.Encode(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare HTTP request: %w", err)
 	}
@@ -118,7 +121,7 @@ func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
 		return nil, fmt.Errorf("unable to parse response JSON: %w", err)
 	}
 
-	log.Info().
+	log.Trace().
 		Interface("response", callControlResponse).
 		Msg("Received call control response")
 
@@ -126,16 +129,23 @@ func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
 }
 
 func (z *Client3CXPost20) convertParticipant(participant CallParticipant, dn string) CallInformation {
+	if participant.Status == "Connected" {
+		participant.Status = "Talking" // This is the pre v20 status
+	}
+
 	return CallInformation{
-		Id:      json.Number(fmt.Sprintf("%d", participant.ID)),
-		CallUID: fmt.Sprintf("%d", participant.CallID),
+		ID: json.Number(strconv.Itoa(participant.CallID)),
+		// CallUID: strconv.Itoa(participant.CallID),
 
 		Status:       participant.Status,
-		CallerNumber: participant.PartyCallerID,
-		CallerName:   "(" + participant.PartyCallerName + ")", // This would now be of the format "(+491234567890)"
+		CallerNumber: participant.PartyDN,
+		CallerName:   participant.PartyCallerName + " (" + participant.PartyCallerID + ")", // This would now be of the format "(+491234567890)"
 		CalleeNumber: participant.DN,
 		CalleeName:   "",
 		AgentNumber:  dn,
+
+		LastChangeStatus: time.Now(),
+		EstablishedAt:    time.Now(), // Not quite correct ...
 	}
 }
 
@@ -386,7 +396,7 @@ func (z *Client3CXPost20) Authenticate() error {
 
 	encodedPayload := values.Encode()
 
-	req, err := http.NewRequest("POST", z.Config.Phone3CX.Host+"/connect/token?"+values.Encode(), bytes.NewReader([]byte(encodedPayload)))
+	req, err := http.NewRequest(http.MethodPost, z.Config.Phone3CX.Host+"/connect/token?"+values.Encode(), bytes.NewReader([]byte(encodedPayload)))
 	if err != nil {
 		return fmt.Errorf("unable to prepare HTTP request: %w", err)
 	}

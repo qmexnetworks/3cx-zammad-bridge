@@ -67,7 +67,7 @@ func (z *ZammadBridge) RequestAndProcess() error {
 			log.Warn().Err(err).Msg("Warning - error processing call")
 		}
 
-		newCalls = append(newCalls, c.Id)
+		newCalls = append(newCalls, c.ID)
 	}
 
 	var endedCalls []json.Number
@@ -136,7 +136,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		z.LogIfErr(z.ZammadNewCall(call), "new-call")
 	} else {
 		// Update call information
-		previous := z.ongoingCalls[call.Id]
+		previous := z.ongoingCalls[call.ID]
 		call.CallUID = previous.CallUID
 		call.ZammadInitialized = previous.ZammadInitialized
 		call.ZammadAnswered = previous.ZammadAnswered
@@ -153,7 +153,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		}
 	}
 
-	z.ongoingCalls[call.Id] = *call
+	z.ongoingCalls[call.ID] = *call
 	return nil
 }
 
@@ -193,7 +193,7 @@ func (z *ZammadBridge) isOutboundCall(call *CallInformation) bool {
 
 // isNewCall checks whether the given call is already ongoing and previously detected by the bridge.
 func (z *ZammadBridge) isNewCall(call *CallInformation) bool {
-	_, ok := z.ongoingCalls[call.Id]
+	_, ok := z.ongoingCalls[call.ID]
 	return !ok
 }
 
