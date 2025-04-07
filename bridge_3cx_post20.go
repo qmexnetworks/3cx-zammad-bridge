@@ -418,7 +418,7 @@ func (z *Client3CXPost20) Authenticate() error {
 	// Decode the response body into the tokenResponse struct
 	err = json.Unmarshal(respBody, &tokenResponse)
 	if err != nil {
-		return fmt.Errorf("unable to unmarshal access token: %w")
+		return fmt.Errorf("unable to unmarshal access token: %w", err)
 	}
 
 	z.accessToken = tokenResponse.AccessToken
