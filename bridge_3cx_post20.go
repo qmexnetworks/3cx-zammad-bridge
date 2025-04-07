@@ -410,6 +410,10 @@ func (z *Client3CXPost20) Authenticate() error {
 		return fmt.Errorf("unable to read response body: %w", err)
 	}
 
+	if resp2.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("HTTP 401: using wrong client_id or client_secret?")
+	}
+
 	log.Trace().
 		Int("http_status", resp2.StatusCode).
 		Int("response_length", len(respBody)).
