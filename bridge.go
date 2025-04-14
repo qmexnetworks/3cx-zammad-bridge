@@ -57,14 +57,36 @@ func (z *ZammadBridge) Listen() error {
 	}
 }
 
+// isDuplicateCall takes care of some edge cases where the same call is reported multiple times.
+// More specifically, when it is reported as "Talking" to the queue and "Rinning" to the agent.
+// This function should return true if the call is a duplicate and should be ignored. Which is
+// the case for the "Ringing" to the agent, such that the "Talking" to the queue is handled.
+func (z *ZammadBridge) isDuplicateCall(call CallInformation, calls []CallInformation) bool {
+	if call.Status != "Ringing" {
+		return false
+	}
+
+	for _, possibleQueueCall := range calls {
+		if possibleQueueCall.ID == call.ID && possibleQueueCall.Status == "Talking" && z.isCallToQueue(possibleQueueCall) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // RequestAndProcess requests the current calls from 3CX and processes them to Zammad
 func (z *ZammadBridge) RequestAndProcess() error {
 	calls, err := z.Client3CX.FetchCalls()
 	newCalls := make([]json.Number, 0, len(calls))
 	for _, c := range calls {
+		if z.isDuplicateCall(c, calls) {
+			continue
+		}
+
 		err = z.ProcessCall(&c)
 		if err != nil {
-			log.Warn().Err(err).Msg("Warning - error processing call")
+			log.Error().Err(err).Msg("Error processing call")
 		}
 
 		newCalls = append(newCalls, c.ID)
@@ -102,6 +124,20 @@ endedCallLoop:
 	}
 
 	return err
+}
+
+// isCallToQueue checks if the call was to a queue instead of an agent
+func (z *ZammadBridge) isCallToQueue(call CallInformation) bool {
+	possiblyQueue, err := strconv.Atoi(call.CalleeNumber)
+	if err != nil {
+		return false // not a possiblyQueue, so ignore it
+	}
+
+	if z.Config.Phone3CX.QueueExtension == possiblyQueue {
+		return true
+	}
+
+	return false
 }
 
 // ProcessCall processes a single ongoing call from 3CX
