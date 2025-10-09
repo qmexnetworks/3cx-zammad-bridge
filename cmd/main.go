@@ -32,9 +32,10 @@ var rootCmd = &cobra.Command{
 }
 
 var (
-	verboseMode bool
-	traceMode   bool
-	logFormat   string
+	verboseMode          bool
+	traceMode            bool
+	logFormat            string
+	customConfigLocation string
 )
 
 func setupLogging() {
@@ -65,14 +66,22 @@ func main() {
 	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&traceMode, "trace", "", false, "trace output, super verbose")
 	rootCmd.PersistentFlags().StringVarP(&logFormat, "log-format", "f", "json", "log format: \"json\" or \"plain\"")
+	rootCmd.PersistentFlags().StringVarP(&customConfigLocation, "config", "c", "", "custom config file path (default \"/etc/3cx-zammad-bridge/config.yaml\")")
 	_ = rootCmd.ParseFlags(os.Args)
 
 	setupLogging()
 
-	c, err := zammadbridge.LoadConfigFromYaml(
+	var configLocations = []string{
 		"config.yaml",
 		"/etc/3cx-zammad-bridge/config.yaml",
 		"//3cx-zammad-bridge/config.yaml",
+	}
+	if customConfigLocation != "" {
+		configLocations = []string{customConfigLocation}
+	}
+
+	c, err := zammadbridge.LoadConfigFromYaml(
+		configLocations...,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to load configuration")

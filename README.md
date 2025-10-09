@@ -106,6 +106,7 @@ Usage:
   zammadbridge [flags]
 
 Flags:
+  -c, --config string       custom config file path (default "/etc/3cx-zammad-bridge/config.yaml")
   -h, --help                help for zammadbridge
   -f, --log-format string   log format: "json" or "plain" (default "json")
       --trace               trace output, super verbose
