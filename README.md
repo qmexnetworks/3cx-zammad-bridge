@@ -84,8 +84,11 @@ Example systemd service:
 Description=3cx-zammad-bridge
 After=network.target
 
-# If running on the same machine as 3CX, you might want to wait for it to start
-PartOf=3CXGatewayService.service
+# One might want to wait for the 3CXGatewayService to be up and running
+# before starting this service, but during updates the 3CGatewayService
+# is *stopped* and later started. This results in this 3cx-zammad-bridge
+# to be stopped but never started again.
+#PartOf=3CXGatewayService.service
 
 [Service]
 User=zammad-bridge
