@@ -50,7 +50,6 @@ func setupLogging() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.DateTime})
 	}
 
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.FormattedLevels = map[zerolog.Level]string{
 		zerolog.TraceLevel: "TRACE",
 		zerolog.DebugLevel: "DEBUG",
