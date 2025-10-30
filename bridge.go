@@ -181,11 +181,9 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		// extensions due to the early-return that otherwise would have happened.
 		// We should then, for once, let Zammad know we answered this call. Since the "Talking" status can be present
 		// every tick, we need to check if we already notified Zammad and only notify Zammad as-needed.
-		if call.Status == "Talking" {
-			if !previous.ZammadAnswered {
-				log.Info().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Call answered")
-				z.LogIfErr(z.ZammadAnswer(call), "answer")
-			}
+		if call.Status == "Talking" && !previous.ZammadAnswered && !z.isCallToQueue(*call) {
+			log.Info().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Call answered")
+			z.LogIfErr(z.ZammadAnswer(call), "answer")
 		}
 	}
 
