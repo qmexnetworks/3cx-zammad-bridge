@@ -56,6 +56,7 @@ Bridge:
 Zammad:
     endpoint: https://zammad.example.com/api/v1/cti/secret # The URL of your Zammad server, including the secret in the URL
     log_missed_queue_calls: true # boolean; Whether or not you want to log missed calls to your queue
+    log_outbound_calls: true # boolean; Whether or not outbound calls are sent to Zammad (default: true)
 ```
 
 ## Running

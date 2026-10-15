@@ -27,6 +27,7 @@ type Config struct {
 	Zammad struct {
 		Endpoint            string `yaml:"endpoint"`
 		LogMissedQueueCalls bool   `yaml:"log_missed_queue_calls"`
+		LogOutboundCalls    bool   `yaml:"log_outbound_calls"`
 	} `yaml:"Zammad"`
 }
 
@@ -34,6 +35,7 @@ type Config struct {
 // It uses the first file it can parse, and only that file.
 func LoadConfigFromYaml(filenames ...string) (*Config, error) {
 	config := new(Config)
+	config.Zammad.LogOutboundCalls = true // default; YAML only overrides keys that are present
 
 	for _, f := range filenames {
 		b, err := os.ReadFile(f)

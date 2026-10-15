@@ -19,3 +19,4 @@ Bridge:
 Zammad:
   endpoint: https://zammad.example.com/api/v1/cti/secret
   log_missed_queue_calls: true
+  log_outbound_calls: true

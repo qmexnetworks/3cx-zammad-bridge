@@ -143,6 +143,11 @@ func (z *ZammadBridge) isCallToQueue(call CallInformation) bool {
 // ProcessCall processes a single ongoing call from 3CX
 func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 	if z.isOutboundCall(call) {
+		if !z.Config.Zammad.LogOutboundCalls {
+			log.Trace().Str("from", call.CallerNumber).Str("to", call.CalleeNumber).Msg("Outbound call ignored (log_outbound_calls is disabled)")
+			return nil
+		}
+
 		call.Direction = "Outbound"
 		call.AgentNumber = call.CallerNumber
 		call.AgentName = call.CallerName
