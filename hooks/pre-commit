@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit checks. Enable with: git config core.hooksPath hooks
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+
+unformatted=$(go tool goimports -l .)
+if [ -n "$unformatted" ]; then
+	echo "goimports: these files need formatting (run 'make pre-commit'):" >&2
+	echo "$unformatted" >&2
+	exit 1
+fi
+
+go vet ./...
+go test ./...
