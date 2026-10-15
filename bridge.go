@@ -13,6 +13,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// fetchRetryDelays are the waits before retrying to fetch the calls from 3CX. Only when the last retry
+// fails too, are the ongoing calls ended in Zammad.
+var fetchRetryDelays = []time.Duration{5 * time.Second, 10 * time.Second, 15 * time.Second}
+
 type ZammadBridge struct {
 	Config *Config
 
@@ -20,6 +24,9 @@ type ZammadBridge struct {
 	ClientZammad http.Client
 
 	ongoingCalls map[json.Number]CallInformation
+
+	// fetchFailures counts the failed attempts to fetch the calls from 3CX in a row.
+	fetchFailures int
 }
 
 // NewZammadBridge initializes a new client that listens for 3CX calls and forwards to Zammad.
@@ -53,14 +60,22 @@ func (z *ZammadBridge) Listen(ctx context.Context) error {
 			log.Error().Err(err).Msg("Error processing calls")
 		}
 
-		// Wait until the next polling should occur
 		select {
 		case <-ctx.Done():
 			log.Info().Msg("Stopping 3CX-Zammad bridge")
 			return nil
-		case <-time.After(time.Duration(float64(time.Second) * z.Config.Bridge.PollInterval)):
+		case <-time.After(z.nextPollWait()):
 		}
 	}
+}
+
+// nextPollWait is the time until the next polling should occur, or the next retry after failing to fetch the calls.
+func (z *ZammadBridge) nextPollWait() time.Duration {
+	if z.fetchFailures > 0 {
+		return fetchRetryDelays[z.fetchFailures-1]
+	}
+
+	return time.Duration(float64(time.Second) * z.Config.Bridge.PollInterval)
 }
 
 // isDuplicateCall takes care of some edge cases where the same call is reported multiple times.
@@ -88,6 +103,17 @@ func (z *ZammadBridge) RequestAndProcess(ctx context.Context) error {
 		// Shutting down: the calls are still ongoing, so don't report them as ended
 		return ctx.Err()
 	}
+
+	if err != nil {
+		z.fetchFailures++
+		if z.fetchFailures <= len(fetchRetryDelays) {
+			// Keep the ongoing calls: 3CX might just be briefly unreachable
+			return fmt.Errorf("unable to fetch calls from 3CX, retrying in %s: %w", fetchRetryDelays[z.fetchFailures-1], err)
+		}
+
+		log.Error().Err(err).Msg("Unable to fetch calls from 3CX after retrying, ending all ongoing calls")
+	}
+	z.fetchFailures = 0
 
 	newCalls := make([]json.Number, 0, len(calls))
 	for _, c := range calls {

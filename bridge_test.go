@@ -3,6 +3,7 @@ package zammadbridge
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -105,5 +106,62 @@ func TestListenStopsWhenContextIsCancelled(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Listen did not return after the context was cancelled")
+	}
+}
+
+// flaky3CX reports calls, or fails to, as set by the test.
+type flaky3CX struct {
+	fake3CX
+
+	calls []CallInformation
+	err   error
+}
+
+func (f *flaky3CX) FetchCalls(context.Context) ([]CallInformation, error) { return f.calls, f.err }
+
+func TestRequestAndProcessKeepsCallsWhileRetryingFetch(t *testing.T) {
+	bridge, directions := newTestBridge(t, true)
+	flaky := &flaky3CX{calls: []CallInformation{*inboundCall()}}
+	bridge.Client3CX = flaky
+
+	if err := bridge.RequestAndProcess(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	flaky.calls, flaky.err = nil, errors.New("3CX unreachable")
+	for range fetchRetryDelays {
+		if err := bridge.RequestAndProcess(t.Context()); err == nil {
+			t.Fatal("expected the fetch error")
+		}
+	}
+	if len(bridge.ongoingCalls) != 1 || len(*directions) != 1 {
+		t.Fatalf("expected the call to stay ongoing while retrying, got %d calls and events %v", len(bridge.ongoingCalls), *directions)
+	}
+
+	// The last retry fails too: the call is ended in Zammad.
+	if err := bridge.RequestAndProcess(t.Context()); err == nil {
+		t.Fatal("expected the fetch error")
+	}
+	if len(bridge.ongoingCalls) != 0 || len(*directions) != 2 {
+		t.Errorf("expected the call to be ended after the retries, got %d calls and events %v", len(bridge.ongoingCalls), *directions)
+	}
+}
+
+func TestRequestAndProcessResetsRetriesAfterSuccessfulFetch(t *testing.T) {
+	bridge, directions := newTestBridge(t, true)
+	flaky := &flaky3CX{calls: []CallInformation{*inboundCall()}}
+	bridge.Client3CX = flaky
+
+	for range 3 {
+		_ = bridge.RequestAndProcess(t.Context())
+		flaky.err = errors.New("3CX unreachable")
+		for range fetchRetryDelays {
+			_ = bridge.RequestAndProcess(t.Context())
+		}
+		flaky.err = nil
+	}
+
+	if len(bridge.ongoingCalls) != 1 || len(*directions) != 1 {
+		t.Errorf("expected short outages not to end the call, got %d calls and events %v", len(bridge.ongoingCalls), *directions)
 	}
 }
