@@ -218,9 +218,8 @@ func (z *Client3CXPost20) Authenticate(ctx context.Context) error {
 		return fmt.Errorf("unable to prepare login request: %w", err)
 	}
 
-	encodedPayload := values.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, z.Config.Phone3CX.Host+"/connect/token?"+values.Encode(), bytes.NewReader([]byte(encodedPayload)))
+	// The credentials only go in the body: errors include the URL, and those end up in the logs.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, z.Config.Phone3CX.Host+"/connect/token", strings.NewReader(values.Encode()))
 	if err != nil {
 		return fmt.Errorf("unable to prepare HTTP request: %w", err)
 	}

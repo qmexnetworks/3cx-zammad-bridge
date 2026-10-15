@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -55,5 +56,36 @@ func TestFetchCallsStopsWhenContextIsCancelled(t *testing.T) {
 	}
 	if time.Since(start) > 2*time.Second {
 		t.Error("FetchCalls kept waiting after the context was done")
+	}
+}
+
+func TestAuthenticateKeepsClientSecretOutOfErrors(t *testing.T) {
+	var gotSecret string
+	client := newTestClient3CXPost20(t, func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		gotSecret = r.PostForm.Get("client_secret")
+		if r.URL.RawQuery != "" {
+			t.Errorf("credentials must not be in the URL, got query %q", r.URL.RawQuery)
+		}
+		w.WriteHeader(http.StatusBadGateway)
+	})
+	client.Config.Phone3CX.ClientID = "bridge"
+	client.Config.Phone3CX.ClientSecret = "s3cr3t"
+
+	err := client.Authenticate(t.Context())
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if gotSecret != "s3cr3t" {
+		t.Errorf("expected the secret in the POST body, got %q", gotSecret)
+	}
+
+	// A transport error (3CX unreachable) includes the URL, which must not carry the secret either.
+	client.Config.Phone3CX.Host = "http://127.0.0.1:9"
+	err = client.Authenticate(t.Context())
+	if err == nil || strings.Contains(err.Error(), "s3cr3t") {
+		t.Errorf("expected an error without the secret, got %v", err)
 	}
 }
