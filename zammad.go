@@ -45,7 +45,7 @@ func (z *ZammadBridge) ZammadNewCall(call *CallInformation) error {
 // an agent.
 func (z *ZammadBridge) ZammadAnswer(call *CallInformation) error {
 	var user string
-	if call.Direction == "Inbound" {
+	if call.Direction == directionInbound {
 		user = call.AgentName
 	}
 
@@ -102,10 +102,10 @@ func (z *ZammadBridge) ZammadHangup(call *CallInformation, cause string) error {
 // ZammadPost makes a POST Request to Zammad with the given payload
 func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 	// Processing
-	if payload.Direction == "Inbound" {
+	if payload.Direction == directionInbound {
 		payload.Direction = "in"
 	}
-	if payload.Direction == "Outbound" {
+	if payload.Direction == directionOutbound {
 		payload.Direction = "out"
 	}
 	payload.CallIdDuplicate = payload.CallId

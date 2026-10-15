@@ -9,12 +9,17 @@ esac
 
 cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}" || exit 0
 
-if ! out=$(go tool goimports -w "$f" 2>&1); then
+if ! command -v golangci-lint >/dev/null 2>&1; then
+	echo "format-lint: golangci-lint not found on PATH; install v2: https://golangci-lint.run/docs/welcome/install/" >&2
+	exit 2
+fi
+
+if ! out=$(golangci-lint fmt "$f" 2>&1); then
 	echo "$out" >&2
 	exit 2
 fi
 
-if ! out=$(go vet ./... 2>&1); then
+if ! out=$(golangci-lint run ./... 2>&1); then
 	echo "$out" >&2
 	exit 2
 fi

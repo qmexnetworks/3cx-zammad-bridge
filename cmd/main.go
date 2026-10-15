@@ -11,23 +11,14 @@ import (
 	zammadbridge "github.com/qmexnetworks/3cx-zammad-bridge"
 )
 
-var (
-	client *zammadbridge.ZammadBridge
-)
+var client *zammadbridge.ZammadBridge
 
 var rootCmd = &cobra.Command{
 	Use:          "zammadbridge",
 	Short:        "3cx-zammad-bridge is a bridge that listens on 3cx to forward information to zammad",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Do Stuff Here
-		err := client.Listen()
-		if err != nil {
-			return err
-			//log.Fatalln("Fatal error:", err.Error())
-		}
-
-		return nil
+		return client.Listen()
 	},
 }
 
@@ -70,7 +61,7 @@ func main() {
 
 	setupLogging()
 
-	var configLocations = []string{
+	configLocations := []string{
 		"config.yaml",
 		"/etc/3cx-zammad-bridge/config.yaml",
 		"//3cx-zammad-bridge/config.yaml",

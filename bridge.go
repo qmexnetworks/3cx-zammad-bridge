@@ -67,7 +67,7 @@ func (z *ZammadBridge) isDuplicateCall(call CallInformation, calls []CallInforma
 	}
 
 	for _, possibleQueueCall := range calls {
-		if possibleQueueCall.ID == call.ID && possibleQueueCall.Status == "Talking" && z.isCallToQueue(possibleQueueCall) {
+		if possibleQueueCall.ID == call.ID && possibleQueueCall.Status == statusTalking && z.isCallToQueue(possibleQueueCall) {
 			return true
 		}
 	}
@@ -109,7 +109,7 @@ endedCallLoop:
 		if oldInfo.Status == "Routing" {
 			log.Info().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Call ended (hangup from routing)")
 			z.LogIfErr(z.ZammadHangup(&oldInfo, "cancel"), "hangup-from-routing")
-		} else if oldInfo.Status == "Talking" {
+		} else if oldInfo.Status == statusTalking {
 			log.Info().Str("call_id", oldInfo.CallUID).Str("direction", oldInfo.Direction).Str("from", oldInfo.CallFrom).Str("to", oldInfo.CallTo).Msg("Call ended (hangup from talking)")
 			z.LogIfErr(z.ZammadHangup(&oldInfo, "normalClearing"), "hangup-from-talking")
 		} else if oldInfo.Status == "Transferring" && z.Config.Zammad.LogMissedQueueCalls {
@@ -148,14 +148,14 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 			return nil
 		}
 
-		call.Direction = "Outbound"
+		call.Direction = directionOutbound
 		call.AgentNumber = call.CallerNumber
 		call.AgentName = call.CallerName
 		call.ExternalNumber = z.ParsePhoneNumber(call.CalleeNumber + " " + call.CalleeName)
 		call.CallTo = call.ExternalNumber
 		call.CallFrom = call.AgentNumber
 	} else if z.isInboundCall(call) {
-		call.Direction = "Inbound"
+		call.Direction = directionInbound
 		call.AgentNumber = call.CalleeNumber
 		call.AgentName = call.CalleeName
 		call.ExternalNumber = z.ParsePhoneNumber(call.CallerNumber + " " + call.CallerName)
@@ -186,7 +186,7 @@ func (z *ZammadBridge) ProcessCall(call *CallInformation) error {
 		// extensions due to the early-return that otherwise would have happened.
 		// We should then, for once, let Zammad know we answered this call. Since the "Talking" status can be present
 		// every tick, we need to check if we already notified Zammad and only notify Zammad as-needed.
-		if call.Status == "Talking" && !previous.ZammadAnswered && !z.isCallToQueue(*call) {
+		if call.Status == statusTalking && !previous.ZammadAnswered && !z.isCallToQueue(*call) {
 			log.Info().Str("call_id", call.CallUID).Str("direction", call.Direction).Str("from", call.CallFrom).Str("to", call.CallTo).Msg("Call answered")
 			z.LogIfErr(z.ZammadAnswer(call), "answer")
 		}

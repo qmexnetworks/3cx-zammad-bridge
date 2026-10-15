@@ -130,7 +130,7 @@ func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
 
 func (z *Client3CXPost20) convertParticipant(participant CallParticipant, dn string) CallInformation {
 	if participant.Status == "Connected" {
-		participant.Status = "Talking" // This is the pre v20 status
+		participant.Status = statusTalking // This is the pre v20 status
 	}
 
 	return CallInformation{
@@ -164,7 +164,7 @@ func (z *Client3CXPost20) aggregateCallResponse(response CallControlResponse) []
 //
 // Currently not used because the "immediate" updates aren't yet compatible with the current implementation.
 //
-// nolint:unused
+//nolint:unused
 func (z *Client3CXPost20) listenWS() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
@@ -174,6 +174,7 @@ func (z *Client3CXPost20) listenWS() {
 	// Start a WS connection
 	ctx := context.Background()
 
+	//nolint:bodyclose // coder/websocket: the caller never closes the response body
 	c, _, err := websocket.Dial(ctx, z.Config.Phone3CX.Host+"/callcontrol/ws", &websocket.DialOptions{
 		HTTPHeader: http.Header{
 			"Authorization": []string{"Bearer " + z.accessToken},
@@ -204,7 +205,7 @@ func (z *Client3CXPost20) listenWS() {
 	}()
 
 	// Make the initial request
-	payload, err := json.Marshal(map[string]interface{}{
+	payload, err := json.Marshal(map[string]any{
 		"RequestID":   "123",
 		"Path":        "/callcontrol",
 		"RequestData": "",
@@ -341,7 +342,7 @@ func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {
 		Str("user", z.Config.Phone3CX.User).
 		Msgf("Authenticating to 3CX...")
 
-	jsonData, err := json.Marshal(requestBody)
+	jsonData, err := json.Marshal(requestBody) //nolint:gosec // G117: Password is the 3CX login payload
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}
@@ -378,7 +379,7 @@ func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {
 	values.Add("grant_type", "refresh_token")
 	values.Add("client_id", "Webclient")
 
-	return values, &http.Cookie{
+	return values, &http.Cookie{ //nolint:gosec // G124: outgoing cookie sent to 3CX, already Secure
 		Name:     "RefreshTokenCookie",
 		Value:    loginResponse.Token.RefreshToken,
 		Secure:   true,
@@ -422,7 +423,7 @@ func (z *Client3CXPost20) Authenticate() error {
 	}
 
 	if resp2.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("HTTP 401: using wrong client_id or client_secret?")
+		return errors.New("HTTP 401: using wrong client_id or client_secret?")
 	}
 
 	log.Trace().

@@ -8,7 +8,7 @@
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/format-lint.sh",
             "timeout": 120,
-            "statusMessage": "goimports + go vet"
+            "statusMessage": "golangci-lint"
           }
         ]
       }

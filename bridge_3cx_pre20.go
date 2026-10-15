@@ -48,7 +48,7 @@ func (z *Client3CXPre20) FetchCalls() ([]CallInformation, error) {
 	}
 
 	// Process names / numbers already
-	for i := 0; i < len(response.List); i++ {
+	for i := range len(response.List) {
 		callerInfo := strings.SplitN(response.List[i].Caller, " ", 2)
 		calleeInfo := strings.SplitN(response.List[i].Callee, " ", 2)
 
@@ -78,7 +78,7 @@ func (z *Client3CXPre20) fetchGroupMembers() error {
 		return fmt.Errorf("unable to fetch group object id %s: %w", groupId, err)
 	}
 
-	var startIndex = 0
+	startIndex := 0
 	var allExtensions []string
 	z.phoneExtensions = map[string]struct{}{}
 
@@ -184,26 +184,23 @@ func (z *Client3CXPre20) fetchGroupMembersPage(objectId string, start int) ([]st
 }
 
 // fetchGroupId looks for the internal 3CX id for the given group
-func (z *Client3CXPre20) fetchGroupId(groupName string) (Id string, Count int, err error) {
+func (z *Client3CXPre20) fetchGroupId(groupName string) (string, int, error) {
 	// Request to /api/GroupList and then look for the name
 	resp, err := z.client.Get(z.Config.Phone3CX.Host + "/api/GroupList")
 	if err != nil {
-		err = fmt.Errorf("unable to request group list: %w", err)
-		return
+		return "", 0, fmt.Errorf("unable to request group list: %w", err)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(resp.Body)
-		err = fmt.Errorf("unexpected response fetching 3CX group info (HTTP %d): %s", resp.StatusCode, string(data))
-		return
+		return "", 0, fmt.Errorf("unexpected response fetching 3CX group info (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		err = fmt.Errorf("unable to read response body: %w", err)
-		return
+		return "", 0, fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	var groupListResponse struct {
@@ -215,8 +212,7 @@ func (z *Client3CXPre20) fetchGroupId(groupName string) (Id string, Count int, e
 	}
 	err = json.Unmarshal(respBody, &groupListResponse)
 	if err != nil {
-		err = fmt.Errorf("unable to parse response JSON: %w", err)
-		return
+		return "", 0, fmt.Errorf("unable to parse response JSON: %w", err)
 	}
 
 	for _, group := range groupListResponse.List {
@@ -225,8 +221,7 @@ func (z *Client3CXPre20) fetchGroupId(groupName string) (Id string, Count int, e
 		}
 	}
 
-	err = fmt.Errorf("group by name not found: %q", groupName)
-	return
+	return "", 0, fmt.Errorf("group by name not found: %q", groupName)
 }
 
 // Authenticate attempts to login to 3CX and retrieve a valid cookie session.
@@ -237,14 +232,14 @@ func (z *Client3CXPre20) Authenticate() error {
 		Msg("Authenticating to 3CX (legacy)...")
 
 	requestBody := struct {
-		Username string
-		Password string
+		Username string `json:"Username"`
+		Password string `json:"Password"`
 	}{
 		z.Config.Phone3CX.User,
 		z.Config.Phone3CX.Pass,
 	}
 
-	jsonData, err := json.Marshal(requestBody)
+	jsonData, err := json.Marshal(requestBody) //nolint:gosec // G117: Password is the 3CX login payload
 	if err != nil {
 		return fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}

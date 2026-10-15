@@ -1,0 +1,59 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - contextcheck
+    - depguard
+    - err113
+    - exhaustruct
+    - exhaustruct_v5
+    - funcorder
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocritic
+    - godot
+    - godox
+    - gomoddirectives
+    - gomodguard
+    - ireturn
+    - lll
+    - mnd
+    - nestif
+    - noctx
+    - noinlineerr
+    - nlreturn
+    - paralleltest
+    - revive
+    - tagliatelle
+    - testpackage
+    - unused
+    - varnamelen
+    - wrapcheck
+    - wsl
+    - wsl_v5
+  settings:
+    cyclop:
+      max-complexity: 12
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -11,6 +11,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	statusTalking     = "Talking"
+	directionInbound  = "Inbound"
+	directionOutbound = "Outbound"
+)
+
 type CallInformation struct {
 	ID     json.Number `json:"Id"`
 	Caller string      `json:"Caller"`
@@ -18,25 +24,25 @@ type CallInformation struct {
 
 	// Status has possible values: "Talking", "Transferring", "Routing"
 	Status            string `json:"Status"`
-	ZammadInitialized bool
-	ZammadAnswered    bool
+	ZammadInitialized bool   `json:"-"`
+	ZammadAnswered    bool   `json:"-"`
 
 	// Timestamps
 	LastChangeStatus time.Time `json:"LastChangeStatus"`
 	EstablishedAt    time.Time `json:"EstablishedAt"`
 
 	// Various processed fields
-	CallerName     string
-	CallerNumber   string
-	CalleeName     string
-	CalleeNumber   string
-	CallUID        string
-	Direction      string
-	AgentName      string
-	AgentNumber    string
-	CallFrom       string
-	CallTo         string
-	ExternalNumber string
+	CallerName     string `json:"-"`
+	CallerNumber   string `json:"-"`
+	CalleeName     string `json:"-"`
+	CalleeNumber   string `json:"-"`
+	CallUID        string `json:"-"`
+	Direction      string `json:"-"`
+	AgentName      string `json:"-"`
+	AgentNumber    string `json:"-"`
+	CallFrom       string `json:"-"`
+	CallTo         string `json:"-"`
+	ExternalNumber string `json:"-"`
 }
 
 type GroupListResponseEntry struct {

@@ -4,12 +4,11 @@ set -eu
 
 cd "$(git rev-parse --show-toplevel)"
 
-unformatted=$(go tool goimports -l .)
-if [ -n "$unformatted" ]; then
-	echo "goimports: these files need formatting (run 'make pre-commit'):" >&2
-	echo "$unformatted" >&2
+if ! command -v golangci-lint >/dev/null 2>&1; then
+	echo "pre-commit: golangci-lint not found on PATH; install v2: https://golangci-lint.run/docs/welcome/install/" >&2
 	exit 1
 fi
 
-go vet ./...
+# Formatting (gofumpt, goimports) and vet are part of the golangci-lint config.
+golangci-lint run ./...
 go test ./...

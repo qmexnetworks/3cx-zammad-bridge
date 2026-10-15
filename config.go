@@ -1,7 +1,7 @@
 package zammadbridge
 
 import (
-	"fmt"
+	"errors"
 	"os"
 
 	"github.com/rs/zerolog/log"
@@ -52,5 +52,5 @@ func LoadConfigFromYaml(filenames ...string) (*Config, error) {
 		return config, nil
 	}
 
-	return nil, fmt.Errorf("unable to find configuration files")
+	return nil, errors.New("unable to find configuration files")
 }
