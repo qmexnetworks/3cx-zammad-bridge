@@ -6,6 +6,9 @@
 
 Monitors calls in 3CX and communicates this to Zammad accordingly.
 
+Built and maintained by [Q-MEX Networks](https://www.q-mex.net/smarte-telefonie/), a certified 3CX Platinum Partner.
+Looking for a hosted 3CX or professional support? [See below](#hosted-3cx-and-support).
+
 ## Requirements
 
  - Linux x86_64 or arm64
@@ -135,6 +138,15 @@ You can build the binary by running `make build`
 Theoretically, this should also run on Windows. You can compile it yourself and
 report possible issues. 
 
-## Support
+## Hosted 3CX and support
 
-Premium support is available at [Q-MEX Networks GmbH](https://www.qmex.net)
+This bridge is developed by [Q-MEX Networks GmbH](https://www.q-mex.net), a **certified 3CX Platinum Partner**
+from the Bremen area, Germany. We run 3CX phone systems for businesses every day, and this bridge comes out of that work.
+
+- **3CX, the way you want it:** hosted by us, self-hosted, or in your own environment
+- **From one source:** setup, migration from your current phone system, number concept and number porting
+- **Everywhere:** office, home office, smartphones and multiple sites, across Germany, Austria and Switzerland
+- **Integrated:** Microsoft 365, and helpdesks such as Zammad with this bridge
+- **Personal support:** a dedicated contact who stays with you after go-live, including premium support for this bridge
+
+Interested? Visit [q-mex.net/smarte-telefonie](https://www.q-mex.net/smarte-telefonie/).
