@@ -2,40 +2,17 @@ package zammadbridge
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/coder/websocket"
 	"github.com/rs/zerolog/log"
-)
-
-type (
-	WebsocketEventType int
-	WebsocketResponse  struct {
-		Sequence int `json:"sequence"`
-		Event    struct {
-			EventType    WebsocketEventType `json:"event_type"`
-			Entity       string             `json:"entity"`
-			AttachedData *json.RawMessage   `json:"attached_data"`
-		} `json:"event"`
-	}
-)
-
-const (
-	WebsocketEventTypeUpsert     WebsocketEventType = 0
-	WebsocketEventTypeDelete     WebsocketEventType = 1
-	WebsocketEventTypeDTMFstring WebsocketEventType = 2
-	WebsocketEventTypeResponse   WebsocketEventType = 4
 )
 
 type CallParticipant struct {
@@ -158,161 +135,6 @@ func (z *Client3CXPost20) aggregateCallResponse(response CallControlResponse) []
 	}
 
 	return calls
-}
-
-// listenWS makes a Websocket connection to 3CX to "immediately" get updates on calls. This is a blocking function.
-//
-// Currently not used because the "immediate" updates aren't yet compatible with the current implementation.
-//
-//nolint:unused
-func (z *Client3CXPost20) listenWS() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt)
-	defer signal.Stop(sigs)
-	defer close(sigs)
-
-	// Start a WS connection
-	ctx := context.Background()
-
-	//nolint:bodyclose // coder/websocket: the caller never closes the response body
-	c, _, err := websocket.Dial(ctx, z.Config.Phone3CX.Host+"/callcontrol/ws", &websocket.DialOptions{
-		HTTPHeader: http.Header{
-			"Authorization": []string{"Bearer " + z.accessToken},
-		},
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Unable to connect to 3CX WS")
-		return
-	}
-
-	defer c.Close(websocket.StatusNormalClosure, "")
-
-	log.Debug().Msg("Connected to 3CX WS")
-
-	go func() {
-		for {
-			select {
-			case <-sigs:
-				log.Debug().Msg("Received interrupt signal")
-				_ = c.Close(websocket.StatusNormalClosure, "")
-				os.Exit(0)
-				return
-			case <-ctx.Done():
-				log.Debug().Msg("Context done")
-				return
-			}
-		}
-	}()
-
-	// Make the initial request
-	payload, err := json.Marshal(map[string]any{
-		"RequestID":   "123",
-		"Path":        "/callcontrol",
-		"RequestData": "",
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling initial request")
-		return
-	}
-
-	err = c.Write(ctx, websocket.MessageText, payload)
-	if err != nil {
-		log.Error().Err(err).Msg("Error writing to 3CX WS")
-		return
-	}
-
-	for {
-		log.Trace().Msg("Waiting for data from 3CX WS...")
-		_, data, err := c.Read(ctx)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				// Somehow the connection was closed
-				log.Debug().Msg("WS Connection closed - received EOF")
-				return
-			}
-
-			log.Error().Err(err).Msg("Error reading from 3CX WS")
-			return
-		}
-
-		err = z.processWSMessage(data)
-		if err != nil {
-			log.Error().Err(err).Msg("Error processing WS message")
-			continue
-		}
-
-		// TODO: Remove this
-		//_ = z.fetchExtensions()
-	}
-}
-
-//nolint:unused
-func (z *Client3CXPost20) processWSMessage(msg []byte) error {
-	var response WebsocketResponse
-	err := json.Unmarshal(msg, &response)
-	if err != nil {
-		return fmt.Errorf("unable to parse WS message: %w", err)
-	}
-
-	if response.Event.EventType == WebsocketEventTypeDelete {
-		log.Debug().
-			Int("sequence", response.Sequence).
-			Int("event_type", int(response.Event.EventType)).
-			Msg("Received delete event from 3CX WS")
-		// TODO: Delete from map
-		return nil
-	}
-
-	// Fetch the entity data which includes current Status
-	entityData, err := httpGET3CX[CallParticipant](z, z.Config.Phone3CX.Host+response.Event.Entity)
-	if err != nil {
-		return fmt.Errorf("unable to fetch entity data: %w", err)
-	}
-
-	log.Debug().
-		Interface("entity", entityData).
-		Int("sequence", response.Sequence).
-		Int("event_type", int(response.Event.EventType)).
-		Msg("Received from 3CX WS")
-
-	// TODO: Store call in local map?
-
-	return nil
-}
-
-//nolint:unused
-func httpGET3CX[T any](z *Client3CXPost20, url string) (*T, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("unable to prepare HTTP request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+z.accessToken)
-
-	resp, err := z.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("unable to perform HTTP request: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected response fetching 3CX info (HTTP %d): %s", resp.StatusCode, string(data))
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read response body: %w", err)
-	}
-
-	o := new(T)
-	err = json.Unmarshal(respBody, o)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse response JSON: %w", err)
-	}
-
-	return o, nil
 }
 
 func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {

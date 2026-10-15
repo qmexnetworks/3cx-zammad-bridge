@@ -3,7 +3,6 @@ module github.com/qmexnetworks/3cx-zammad-bridge
 go 1.27.2
 
 require (
-	github.com/coder/websocket v1.8.15
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
