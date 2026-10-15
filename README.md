@@ -8,13 +8,24 @@ Monitors calls in 3CX and communicates this to Zammad accordingly.
 
 ## Requirements
 
- - Linux x86_64
+ - Linux x86_64 or arm64
 
 ## Installation
 
-- Download the latest release binary from [releases](https://github.com/qmexnetworks/3cx-zammad-bridge/releases).
-    - Copy the binary into `/usr/local/bin`
+- Download the latest release binary for your architecture from [releases](https://github.com/qmexnetworks/3cx-zammad-bridge/releases)
+  and verify it against `checksums.txt`.
+    - Copy the binary into `/usr/local/bin` as `zammadbridge`
 - `chmod +x zammadbridge`
+
+### Docker
+
+Multi-arch images are published to the GitHub Container Registry:
+
+```shell
+docker run -d --restart=always \
+  -v /etc/3cx-zammad-bridge/config.yaml:/etc/3cx-zammad-bridge/config.yaml:ro \
+  ghcr.io/qmexnetworks/3cx-zammad-bridge:latest
+```
 
 ## Configuration
 

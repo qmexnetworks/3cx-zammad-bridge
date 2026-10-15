@@ -1,0 +1,38 @@
+version: 2
+
+builds:
+  - main: ./cmd
+    binary: zammadbridge
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+      - -tags=netgo
+    ldflags:
+      - -s -w -buildid=
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [binary]
+    name_template: "zammadbridge-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - images:
+      - ghcr.io/qmexnetworks/3cx-zammad-bridge
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.source: https://github.com/qmexnetworks/3cx-zammad-bridge
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.licenses: EUPL-1.2
