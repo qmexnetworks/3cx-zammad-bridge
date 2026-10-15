@@ -1,6 +1,7 @@
 package zammadbridge
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +11,9 @@ import (
 
 type fake3CX struct{}
 
-func (fake3CX) AuthenticateRetry(time.Duration) error  { return nil }
-func (fake3CX) FetchCalls() ([]CallInformation, error) { return nil, nil }
-func (fake3CX) IsExtension(string) bool                { return true }
+func (fake3CX) AuthenticateRetry(context.Context, time.Duration) error { return nil }
+func (fake3CX) FetchCalls(context.Context) ([]CallInformation, error)  { return nil, nil }
+func (fake3CX) IsExtension(string) bool                                { return true }
 
 // newTestBridge returns a bridge with 3-digit extensions and 5-digit trunks,
 // and a pointer to the directions of the events Zammad received.
@@ -85,5 +86,24 @@ func TestProcessCallSendsInboundCallsWhenOutboundDisabled(t *testing.T) {
 
 	if len(*directions) != 1 || (*directions)[0] != "in" {
 		t.Errorf("expected one inbound event, got %v", *directions)
+	}
+}
+
+func TestListenStopsWhenContextIsCancelled(t *testing.T) {
+	bridge, _ := newTestBridge(t, true)
+	bridge.Config.Bridge.PollInterval = 3600
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- bridge.Listen(ctx) }()
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("expected a clean shutdown, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Listen did not return after the context was cancelled")
 	}
 }

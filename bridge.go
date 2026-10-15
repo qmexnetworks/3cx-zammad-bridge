@@ -1,6 +1,7 @@
 package zammadbridge
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -22,8 +23,8 @@ type ZammadBridge struct {
 }
 
 // NewZammadBridge initializes a new client that listens for 3CX calls and forwards to Zammad.
-func NewZammadBridge(config *Config) (*ZammadBridge, error) {
-	client3CX, err := Create3CXClient(config)
+func NewZammadBridge(ctx context.Context, config *Config) (*ZammadBridge, error) {
+	client3CX, err := Create3CXClient(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create 3CX client: %w", err)
 	}
@@ -35,25 +36,30 @@ func NewZammadBridge(config *Config) (*ZammadBridge, error) {
 	}, nil
 }
 
-// Listen listens for calls and does not return unless something really bad happened.
-func (z *ZammadBridge) Listen() error {
+// Listen listens for calls until ctx is done, and otherwise only returns if something really bad happened.
+func (z *ZammadBridge) Listen(ctx context.Context) error {
 	log.Info().Msg("Starting 3CX-Zammad bridge (fetching calls every " + strconv.FormatFloat(z.Config.Bridge.PollInterval, 'f', -1, 64) + " seconds)")
 	for {
-		err := z.RequestAndProcess()
-		if err != nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403")) {
+		err := z.RequestAndProcess(ctx)
+		if err != nil && ctx.Err() == nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403")) {
 			log.Trace().Err(err).Msg("Reconnecting due to authentication error")
 
 			// Authentication error
-			err = z.Client3CX.AuthenticateRetry(time.Second * 120)
-			if err != nil {
+			err = z.Client3CX.AuthenticateRetry(ctx, time.Second*120)
+			if err != nil && ctx.Err() == nil {
 				return fmt.Errorf("unable to authenticate: %w", err)
 			}
-		} else if err != nil {
+		} else if err != nil && ctx.Err() == nil {
 			log.Error().Err(err).Msg("Error processing calls")
 		}
 
 		// Wait until the next polling should occur
-		time.Sleep(time.Duration(float64(time.Second) * z.Config.Bridge.PollInterval))
+		select {
+		case <-ctx.Done():
+			log.Info().Msg("Stopping 3CX-Zammad bridge")
+			return nil
+		case <-time.After(time.Duration(float64(time.Second) * z.Config.Bridge.PollInterval)):
+		}
 	}
 }
 
@@ -76,8 +82,13 @@ func (z *ZammadBridge) isDuplicateCall(call CallInformation, calls []CallInforma
 }
 
 // RequestAndProcess requests the current calls from 3CX and processes them to Zammad
-func (z *ZammadBridge) RequestAndProcess() error {
-	calls, err := z.Client3CX.FetchCalls()
+func (z *ZammadBridge) RequestAndProcess(ctx context.Context) error {
+	calls, err := z.Client3CX.FetchCalls(ctx)
+	if ctx.Err() != nil {
+		// Shutting down: the calls are still ongoing, so don't report them as ended
+		return ctx.Err()
+	}
+
 	newCalls := make([]json.Number, 0, len(calls))
 	for _, c := range calls {
 		if z.isDuplicateCall(c, calls) {
@@ -92,6 +103,13 @@ func (z *ZammadBridge) RequestAndProcess() error {
 		newCalls = append(newCalls, c.ID)
 	}
 
+	z.processEndedCalls(newCalls)
+
+	return err
+}
+
+// processEndedCalls notifies Zammad of the ongoing calls that 3CX no longer reports, and forgets them.
+func (z *ZammadBridge) processEndedCalls(newCalls []json.Number) {
 	var endedCalls []json.Number
 
 endedCallLoop:
@@ -122,8 +140,6 @@ endedCallLoop:
 	for _, callId := range endedCalls {
 		delete(z.ongoingCalls, callId)
 	}
-
-	return err
 }
 
 // isCallToQueue checks if the call was to a queue instead of an agent

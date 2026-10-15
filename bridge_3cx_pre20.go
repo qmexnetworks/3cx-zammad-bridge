@@ -2,6 +2,7 @@ package zammadbridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,12 +21,12 @@ type Client3CXPre20 struct {
 	phoneExtensions map[string]struct{}
 }
 
-func (z *Client3CXPre20) FetchCalls() ([]CallInformation, error) {
+func (z *Client3CXPre20) FetchCalls(ctx context.Context) ([]CallInformation, error) {
 	type CallInformationResponse struct {
 		List []CallInformation `json:"list"`
 	}
 
-	resp, err := z.client.Get(z.Config.Phone3CX.Host + "/api/activeCalls")
+	resp, err := httpGet(ctx, &z.client, z.Config.Phone3CX.Host+"/api/activeCalls")
 	if err != nil {
 		return nil, fmt.Errorf("unable to request from 3CX: %w", err)
 	}
@@ -66,14 +67,14 @@ func (z *Client3CXPre20) FetchCalls() ([]CallInformation, error) {
 }
 
 // fetchGroupMembers fetches the details on group members of the 3CX group that we are monitoring.
-func (z *Client3CXPre20) fetchGroupMembers() error {
+func (z *Client3CXPre20) fetchGroupMembers(ctx context.Context) error {
 	// Request to /api/edit/update with complex payload
-	groupId, count, err := z.fetchGroupId(z.Config.Phone3CX.Group)
+	groupId, count, err := z.fetchGroupId(ctx, z.Config.Phone3CX.Group)
 	if err != nil {
 		return fmt.Errorf("unable to find 3CX group id: %w", err)
 	}
 
-	_, objectId, err := z.fetchGroupMembersPageFirst(groupId)
+	_, objectId, err := z.fetchGroupMembersPageFirst(ctx, groupId)
 	if err != nil {
 		return fmt.Errorf("unable to fetch group object id %s: %w", groupId, err)
 	}
@@ -83,7 +84,7 @@ func (z *Client3CXPre20) fetchGroupMembers() error {
 	z.phoneExtensions = map[string]struct{}{}
 
 	for len(z.phoneExtensions) < count && startIndex <= count {
-		extensions, err := z.fetchGroupMembersPage(objectId, startIndex)
+		extensions, err := z.fetchGroupMembersPage(ctx, objectId, startIndex)
 		if err != nil {
 			return fmt.Errorf("unable to fetch group members from index %d from group %s: %w", startIndex, groupId, err)
 		}
@@ -107,12 +108,12 @@ func (z *Client3CXPre20) fetchGroupMembers() error {
 
 // fetchGroupMembersPageFirst fetches the first page of members of the given group
 // TODO: For v20 and up we need to request /xapi/v1/Groups(ID)/Members and store the `.Number` field within `value` where they have `.Type = "RingGroup"`
-func (z *Client3CXPre20) fetchGroupMembersPageFirst(groupId string) ([]string, string, error) {
+func (z *Client3CXPre20) fetchGroupMembersPageFirst(ctx context.Context, groupId string) ([]string, string, error) {
 	requestBody := fmt.Sprintf(
 		"{\"Id\":%s}",
 		groupId)
 
-	resp, err := z.client.Post(z.Config.Phone3CX.Host+"/api/GroupList/set", "application/json", bytes.NewBufferString(requestBody))
+	resp, err := httpPostJSON(ctx, &z.client, z.Config.Phone3CX.Host+"/api/GroupList/set", bytes.NewBufferString(requestBody))
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to make GroupList/set request: %w", err)
 	}
@@ -146,12 +147,12 @@ func (z *Client3CXPre20) fetchGroupMembersPageFirst(groupId string) ([]string, s
 }
 
 // fetchGroupMembersPage fetches a single page of members of the given group
-func (z *Client3CXPre20) fetchGroupMembersPage(objectId string, start int) ([]string, error) {
+func (z *Client3CXPre20) fetchGroupMembersPage(ctx context.Context, objectId string, start int) ([]string, error) {
 	requestBody := fmt.Sprintf(
 		"{\"Path\":{\"ObjectId\":\"%s\",\"PropertyPath\":[{\"Name\":\"Members\"}]},\"PropertyValue\":{\"State\":{\"Start\":%d,\"SortBy\":null,\"Reverse\":false,\"Search\":\"\"}}}",
 		objectId, start)
 
-	resp, err := z.client.Post(z.Config.Phone3CX.Host+"/api/edit/update", "application/json", bytes.NewBufferString(requestBody))
+	resp, err := httpPostJSON(ctx, &z.client, z.Config.Phone3CX.Host+"/api/edit/update", bytes.NewBufferString(requestBody))
 	if err != nil {
 		return nil, fmt.Errorf("unable to make group member listing request: %w", err)
 	}
@@ -184,9 +185,9 @@ func (z *Client3CXPre20) fetchGroupMembersPage(objectId string, start int) ([]st
 }
 
 // fetchGroupId looks for the internal 3CX id for the given group
-func (z *Client3CXPre20) fetchGroupId(groupName string) (string, int, error) {
+func (z *Client3CXPre20) fetchGroupId(ctx context.Context, groupName string) (string, int, error) {
 	// Request to /api/GroupList and then look for the name
-	resp, err := z.client.Get(z.Config.Phone3CX.Host + "/api/GroupList")
+	resp, err := httpGet(ctx, &z.client, z.Config.Phone3CX.Host+"/api/GroupList")
 	if err != nil {
 		return "", 0, fmt.Errorf("unable to request group list: %w", err)
 	}
@@ -225,7 +226,7 @@ func (z *Client3CXPre20) fetchGroupId(groupName string) (string, int, error) {
 }
 
 // Authenticate attempts to login to 3CX and retrieve a valid cookie session.
-func (z *Client3CXPre20) Authenticate() error {
+func (z *Client3CXPre20) Authenticate(ctx context.Context) error {
 	log.Debug().
 		Str("host", z.Config.Phone3CX.Host).
 		Str("user", z.Config.Phone3CX.User).
@@ -244,7 +245,7 @@ func (z *Client3CXPre20) Authenticate() error {
 		return fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}
 
-	resp, err := z.client.Post(z.Config.Phone3CX.Host+"/api/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := httpPostJSON(ctx, &z.client, z.Config.Phone3CX.Host+"/api/login", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("unable to make login request: %w", err)
 	}
@@ -255,15 +256,15 @@ func (z *Client3CXPre20) Authenticate() error {
 		return fmt.Errorf("unexpected response authenticating 3CX (HTTP %d): %s", resp.StatusCode, string(data))
 	}
 
-	return z.fetchGroupMembers()
+	return z.fetchGroupMembers(ctx)
 }
 
 // AuthenticateRetry retries logging in a while (defined in maxOffline).
 // It waits five seconds for every failed attempt.
-func (z *Client3CXPre20) AuthenticateRetry(maxOffline time.Duration) error {
+func (z *Client3CXPre20) AuthenticateRetry(ctx context.Context, maxOffline time.Duration) error {
 	var downSince time.Time
 
-	for err := z.Authenticate(); err != nil; err = z.Authenticate() {
+	for err := z.Authenticate(ctx); err != nil; err = z.Authenticate(ctx) {
 		// Write down the start time
 		if downSince.IsZero() {
 			downSince = time.Now()
@@ -276,7 +277,11 @@ func (z *Client3CXPre20) AuthenticateRetry(maxOffline time.Duration) error {
 		log.Warn().
 			Err(err).
 			Msg("Unable to authenticate to 3CX (legacy) - retrying in 5 seconds...")
-		time.Sleep(time.Second * 5)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
 	}
 
 	return nil

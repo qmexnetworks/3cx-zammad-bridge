@@ -1,8 +1,10 @@
 package zammadbridge
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"strings"
@@ -63,11 +65,11 @@ type GroupListEntryObject struct {
 type API3CX interface {
 	// AuthenticateRetry authenticates the client and retries in case of offline status
 	// maxOffline specifies the maximum duration to wait for the client to come online.
-	AuthenticateRetry(maxOffline time.Duration) error
+	AuthenticateRetry(ctx context.Context, maxOffline time.Duration) error
 
 	// FetchCalls retrieves information about current calls from the 3CX API.
 	// It returns a slice of CallInformation structs and an error if the API call fails.
-	FetchCalls() ([]CallInformation, error)
+	FetchCalls(ctx context.Context) ([]CallInformation, error)
 
 	// IsExtension checks if a given phone number is a valid extension that is being monitored.
 	IsExtension(number string) bool
@@ -81,7 +83,7 @@ type API3CX interface {
 //
 // The client is created with a cookiejar and authenticated using the AuthenticateRetry method,
 // which waits for the client to come online for a maximum duration of two minutes.
-func Create3CXClient(c *Config) (API3CX, error) {
+func Create3CXClient(ctx context.Context, c *Config) (API3CX, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create cookiejar: %w", err)
@@ -95,7 +97,7 @@ func Create3CXClient(c *Config) (API3CX, error) {
 		},
 	}
 
-	err = v20.AuthenticateRetry(120 * time.Second)
+	err = v20.AuthenticateRetry(ctx, 120*time.Second)
 	if err == nil {
 		return v20, nil
 	}
@@ -115,10 +117,31 @@ func Create3CXClient(c *Config) (API3CX, error) {
 		},
 	}
 
-	err = preV20.AuthenticateRetry(120 * time.Second)
+	err = preV20.AuthenticateRetry(ctx, 120*time.Second)
 	if err != nil {
 		return nil, err
 	}
 
 	return preV20, nil
+}
+
+// httpGet is http.Client.Get, cancelled with ctx.
+func httpGet(ctx context.Context, client *http.Client, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to prepare HTTP request: %w", err)
+	}
+
+	return client.Do(req)
+}
+
+// httpPostJSON is http.Client.Post with a JSON body, cancelled with ctx.
+func httpPostJSON(ctx context.Context, client *http.Client, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to prepare HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	return client.Do(req)
 }

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -18,7 +21,7 @@ var rootCmd = &cobra.Command{
 	Short:        "3cx-zammad-bridge is a bridge that listens on 3cx to forward information to zammad",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return client.Listen()
+		return client.Listen(cmd.Context())
 	},
 }
 
@@ -77,14 +80,20 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to load configuration")
 	}
 
-	client, err = zammadbridge.NewZammadBridge(c)
+	// Stop cleanly on Ctrl+C and on SIGTERM (systemd, docker stop)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	client, err = zammadbridge.NewZammadBridge(ctx, c)
 	if err != nil {
+		if ctx.Err() != nil {
+			return // stopped while connecting to 3CX
+		}
 		log.Fatal().Err(err).Msg("Unable to create Zammad bridge")
 	}
 
-	err = rootCmd.Execute()
+	err = rootCmd.ExecuteContext(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to execute command")
-		os.Exit(1)
 	}
 }

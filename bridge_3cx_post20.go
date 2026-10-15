@@ -2,6 +2,7 @@ package zammadbridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,14 +57,14 @@ type Client3CXPost20 struct {
 	accessToken string
 }
 
-func (z *Client3CXPost20) FetchCalls() ([]CallInformation, error) {
+func (z *Client3CXPost20) FetchCalls(ctx context.Context) ([]CallInformation, error) {
 	// If we call someone, we get some entity like this:
 	// {"level":"debug","entity":"{\"id\":8107,\"status\":\"Dialing\",\"dn\":\"150\",\"party_caller_name\":\"\",\"party_dn\":\"10007\",\"party_caller_id\":\"0123456789\",\"party_did\":\"\",\"device_id\":\"sip:150@127.0.0.1:5063\",\"party_dn_type\":\"Wexternalline\",\"direct_control\":false,\"originated_by_dn\":\"\",\"originated_by_type\":\"None\",\"referred_by_dn\":\"\",\"referred_by_type\":\"None\",\"on_behalf_of_dn\":\"\",\"on_behalf_of_type\":\"None\",\"callid\":1265,\"legid\":1}","sequence":18,"event_type":0,"time":"2024-12-30T15:12:40+01:00","message":"Received from 3CX WS"}
 	// If we receive a call, we get some entity like this:
 	// {"level":"debug","entity":"{\"id\":8106,\"status\":\"Ringing\",\"dn\":\"150\",\"party_caller_name\":\"+49123456789\",\"party_dn\":\"10007\",\"party_caller_id\":\"0123456789\",\"party_did\":\"\",\"device_id\":\"sip:150@127.0.0.1:5483;rinstance=c2a75fd2f1caea71\",\"party_dn_type\":\"Wexternalline\",\"direct_control\":false,\"originated_by_dn\":\"ROUTER\",\"originated_by_type\":\"Wroutepoint\",\"referred_by_dn\":\"\",\"referred_by_type\":\"None\",\"on_behalf_of_dn\":\"\",\"on_behalf_of_type\":\"None\",\"callid\":1264,\"legid\":4}","sequence":15,"event_type":0,"time":"2024-12-30T15:11:48+01:00","message":"Received from 3CX WS"}
 
 	values := url.Values{}
-	req, err := http.NewRequest(http.MethodGet, z.Config.Phone3CX.Host+"/callcontrol?"+values.Encode(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, z.Config.Phone3CX.Host+"/callcontrol?"+values.Encode(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare HTTP request: %w", err)
 	}
@@ -137,7 +138,7 @@ func (z *Client3CXPost20) aggregateCallResponse(response CallControlResponse) []
 	return calls
 }
 
-func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {
+func (z *Client3CXPost20) getLoginValues(ctx context.Context) (url.Values, *http.Cookie, error) {
 	if z.Config.Phone3CX.ClientID != "" && z.Config.Phone3CX.ClientSecret != "" {
 		log.Debug().
 			Str("client_id", z.Config.Phone3CX.ClientID).
@@ -169,7 +170,7 @@ func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {
 		return nil, nil, fmt.Errorf("unable to serialize JSON request body: %w", err)
 	}
 
-	resp, err := z.client.Post(z.Config.Phone3CX.Host+"/webclient/api/Login/GetAccessToken", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := httpPostJSON(ctx, &z.client, z.Config.Phone3CX.Host+"/webclient/api/Login/GetAccessToken", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to make login request: %w", err)
 	}
@@ -211,15 +212,15 @@ func (z *Client3CXPost20) getLoginValues() (url.Values, *http.Cookie, error) {
 
 // Authenticate attempts to login to 3CX and stores a token for future API calls. It then loads
 // all extensions we are configured to monitor.
-func (z *Client3CXPost20) Authenticate() error {
-	values, cookie, err := z.getLoginValues()
+func (z *Client3CXPost20) Authenticate(ctx context.Context) error {
+	values, cookie, err := z.getLoginValues(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to prepare login request: %w", err)
 	}
 
 	encodedPayload := values.Encode()
 
-	req, err := http.NewRequest(http.MethodPost, z.Config.Phone3CX.Host+"/connect/token?"+values.Encode(), bytes.NewReader([]byte(encodedPayload)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, z.Config.Phone3CX.Host+"/connect/token?"+values.Encode(), bytes.NewReader([]byte(encodedPayload)))
 	if err != nil {
 		return fmt.Errorf("unable to prepare HTTP request: %w", err)
 	}
@@ -268,10 +269,10 @@ func (z *Client3CXPost20) Authenticate() error {
 
 // AuthenticateRetry retries logging in a while (defined in maxOffline).
 // It waits five seconds for every failed attempt.
-func (z *Client3CXPost20) AuthenticateRetry(maxOffline time.Duration) error {
+func (z *Client3CXPost20) AuthenticateRetry(ctx context.Context, maxOffline time.Duration) error {
 	var downSince time.Time
 
-	for err := z.Authenticate(); err != nil; err = z.Authenticate() {
+	for err := z.Authenticate(ctx); err != nil; err = z.Authenticate(ctx) {
 		// If we received a HTTP 404 error, the server is probably not online and might be a pre-v20 version.
 		// Retrying will not help in such scenarios.
 		if strings.Contains(err.Error(), "404") {
@@ -290,7 +291,11 @@ func (z *Client3CXPost20) AuthenticateRetry(maxOffline time.Duration) error {
 		log.Warn().
 			Err(err).
 			Msg("Unable to authenticate to 3CX - retrying in 5 seconds...")
-		time.Sleep(time.Second * 5)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
 	}
 
 	return nil
