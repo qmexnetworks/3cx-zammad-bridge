@@ -121,6 +121,7 @@ func (z *ZammadBridge) ZammadPost(payload ZammadApiRequest) error {
 	if err != nil {
 		return fmt.Errorf("unable to make request: %w", err)
 	}
+	defer resp.Body.Close()
 
 	log.Trace().Str("call_id", payload.CallId).Str("event", payload.Event).Str("from", payload.From).Str("to", payload.To).Int("status", resp.StatusCode).Msg("Zammad response (POST)")
 

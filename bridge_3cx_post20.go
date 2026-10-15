@@ -410,6 +410,7 @@ func (z *Client3CXPost20) Authenticate() error {
 	if err != nil {
 		return fmt.Errorf("unable to perform HTTP request: %w", err)
 	}
+	defer resp2.Body.Close()
 
 	var tokenResponse struct {
 		AccessToken string `json:"access_token"`
